@@ -17,6 +17,9 @@ spec:
       containers:
         - name: mysql
           image: mysql
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: data
           resources:
             limits:
               memory: 1G
@@ -41,6 +44,10 @@ spec:
                   key: database-password
             - name: MYSQL_RANDOM_ROOT_PASSWORD
               value: "yes"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
 ---
 apiVersion: v1
 kind: Service
