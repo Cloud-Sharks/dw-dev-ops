@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  labels:
+    app: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql
+          resources:
+            limits:
+              memory: 1G
+              cpu: "1"
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: database-name
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: database-username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: database-password
+            - name: MYSQL_RANDOM_ROOT_PASSWORD
+              value: "yes"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  type: NodePort
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+      nodePort: 31000

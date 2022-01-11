@@ -1,0 +1,79 @@
+version: "3.7"
+
+volumes:
+  aline-mysql-data:
+
+networks:
+  default:
+    external: true
+    name: aline
+
+services:
+  db:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    container_name: aline_db
+    environment:
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE=alinedb
+    volumes:
+      - aline-mysql:/var/lib/mysql
+      - ./init-sql:/docker-entrypoint-initdb.d
+    cap_add:
+      - SYS_NICE
+
+  adminer:
+    image: adminer
+    container_name: aline-adminer
+    ports:
+      - 9000:8080
+    depends_on:
+      - db
+
+  user:
+    image: captainsalt/user-microservice
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - APP_PORT=8070
+    ports:
+      - 8070:8070
+    depends_on:
+      - db
+
+  bank:
+    image: captainsalt/bank-microservice
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - APP_PORT=8083
+    ports:
+      - 8083:8083
+    depends_on:
+      - db
+
+  transaction:
+    image: captainsalt/transaction-microservice
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - APP_PORT=8073
+    ports:
+      - 8073:8073
+    depends_on:
+      - db
+
+  underwriter:
+    image: captainsalt/underwriter-microservice
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - APP_PORT=8071
+    ports:
+      - 8071:8071
+    depends_on:
+      - db

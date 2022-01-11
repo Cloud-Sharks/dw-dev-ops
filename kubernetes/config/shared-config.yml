@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shared-config
+data:
+  database-host: mysql-service
+  database-port: "3306"
+  database-name: alinedb

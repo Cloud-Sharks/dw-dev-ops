@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bank-microservice-deployment
+  labels:
+    app: bank-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bank-microservice
+  template:
+    metadata:
+      labels:
+        app: bank-microservice
+    spec:
+      containers:
+        - name: bank-microservice
+          image: captainsalt/bank-microservice
+          resources:
+            limits:
+              memory: 2.5G
+              cpu: "1.5"
+          ports:
+            - containerPort: 8083
+          env:
+            - name: APP_PORT
+              value: "8083"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: database-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: database-password
+            - name: ENCRYPT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: encrypt-secret-key
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: jwt-secret-key
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: database-host
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: database-port
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: database-name
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bank-microservice
+spec:
+  type: NodePort
+  selector:
+    app: bank-microservice
+  ports:
+    - port: 8083
+      targetPort: 8083
+      nodePort: 30001

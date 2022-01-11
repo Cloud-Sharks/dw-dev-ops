@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transaction-microservice-deployment
+  labels:
+    app: transaction-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transaction-microservice
+  template:
+    metadata:
+      labels:
+        app: transaction-microservice
+    spec:
+      containers:
+        - name: transaction-microservice
+          image: captainsalt/transaction-microservice
+          resources:
+            limits:
+              memory: 2.5G
+              cpu: "1.5"
+          ports:
+            - containerPort: 8083
+          env:
+            - name: APP_PORT
+              value: "8083"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: database-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: database-password
+            - name: ENCRYPT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: encrypt-secret-key
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: jwt-secret-key
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: database-host
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: database-port
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: database-name
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transaction-microservice
+spec:
+  # TODO: Remove nodeport when gateway is working
+  type: NodePort
+  selector:
+    app: transaction-microservice
+  ports:
+    - port: 8083
+      targetPort: 8083
+      nodePort: 30002
