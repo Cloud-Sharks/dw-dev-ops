@@ -9,16 +9,17 @@ networks:
     name: aline
 
 services:
-  db:
+  aline-db:
     image: mysql
     command: --default-authentication-plugin=mysql_native_password
-    container_name: aline_db
-    environment:
-      - MYSQL_ROOT_PASSWORD
-      - MYSQL_DATABASE=alinedb
+    container_name: aline-db
+    expose:
+      - 3306
+    env_file:
+      - .env
     volumes:
-      - aline-mysql:/var/lib/mysql
-      - ./init-sql:/docker-entrypoint-initdb.d
+      - ./init-sql:/docker-entrypoint-initdb.d:ro
+      - aline-mysql-data:/var/lib/mysql
     cap_add:
       - SYS_NICE
 
@@ -28,7 +29,7 @@ services:
     ports:
       - 9000:8080
     depends_on:
-      - db
+      - aline-db
 
   user:
     image: captainsalt/user-microservice
@@ -40,7 +41,7 @@ services:
     ports:
       - 8070:8070
     depends_on:
-      - db
+      - aline-db
 
   bank:
     image: captainsalt/bank-microservice
@@ -52,7 +53,7 @@ services:
     ports:
       - 8083:8083
     depends_on:
-      - db
+      - aline-db
 
   transaction:
     image: captainsalt/transaction-microservice
@@ -64,7 +65,7 @@ services:
     ports:
       - 8073:8073
     depends_on:
-      - db
+      - aline-db
 
   underwriter:
     image: captainsalt/underwriter-microservice
@@ -76,4 +77,4 @@ services:
     ports:
       - 8071:8071
     depends_on:
-      - db
+      - aline-db
