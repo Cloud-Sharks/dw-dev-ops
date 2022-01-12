@@ -5,8 +5,6 @@ volumes:
 
 networks:
   default:
-    external: true
-    name: aline
 
 services:
   aline-db:
