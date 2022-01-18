@@ -67,7 +67,6 @@ kind: Service
 metadata:
   name: transaction-microservice
 spec:
-  # TODO: Remove nodeport when gateway is working
   type: NodePort
   selector:
     app: transaction-microservice
