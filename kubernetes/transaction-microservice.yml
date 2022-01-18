@@ -22,7 +22,7 @@ spec:
               memory: 2.5G
               cpu: "1.5"
           ports:
-            - containerPort: 8083
+            - containerPort: 8073
           env:
             - name: APP_PORT
               value: "8083"
@@ -72,6 +72,6 @@ spec:
   selector:
     app: transaction-microservice
   ports:
-    - port: 8083
-      targetPort: 8083
+    - port: 8073
+      targetPort: 8073
       nodePort: 30002
