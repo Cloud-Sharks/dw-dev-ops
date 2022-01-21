@@ -35,20 +35,28 @@ let services =
     |> List.map (fun string -> $"{string}-microservice")
 
 let repositoryPolicyRecord user =
-    let statement =
+    let actions =  [ 
+        "ecr:BatchGetImage"
+        "ecr:BatchCheckLayerAvailability"
+        "ecr:CompleteLayerUpload"
+        "ecr:GetDownloadUrlForLayer"
+        "ecr:InitiateLayerUpload"
+        "ecr:PutImage"
+        "ecr:UploadLayerPart" ]
+
+    let allowStatement =
         {| Sid = $"Allow {user.Name} push/pull"
            Effect = "Allow"
-           Principal = {| AWS = user.ARN |}
-           Action =
-            [   "ecr:BatchGetImage"
-                "ecr:BatchCheckLayerAvailability"
-                "ecr:CompleteLayerUpload"
-                "ecr:GetDownloadUrlForLayer"
-                "ecr:InitiateLayerUpload"
-                "ecr:PutImage"
-                "ecr:UploadLayerPart" ] |}
+           Principal = {| AWS = [user.ARN] |}
+           Action = actions |}
 
-    {| Version = "2008-10-17"; Statement = [statement]|}
+    let denyStatement = {|
+        Sid = $"Deny others"
+        Effect = "Deny"
+        Principal = {| AWS = [ yield! users |> Seq.filter (fun u -> u <> user) |> Seq.map (fun u -> u.ARN) ] |}
+        Action = actions |}
+
+    {| Version = "2008-10-17"; Statement = [allowStatement; denyStatement]|}
 
 let repositoryRecord user service =
     {| Type = "AWS::ECR::Repository"
