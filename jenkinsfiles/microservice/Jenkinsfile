@@ -66,8 +66,7 @@ pipeline {
         stage("Deploy Image") {
             environment {
                 COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
-                ECR_IMAGE_TAG_LATEST = "${ECR_URL}/${ECR_REPOSITORY_NAME}"
-                ECR_IMAGE_TAG_HASH = "${ECR_IMAGE_TAG_LATEST}:${COMMIT_HASH}"
+                ECR_IMAGE_TAG_HASH = "${ECR_URL}/${ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
             }
 
             steps {
@@ -81,7 +80,6 @@ pipeline {
                         secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
                     ]]) {
                     sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_URL}"
-                    sh "docker tag ${jenkinsImage} ${ECR_IMAGE_TAG_LATEST}"
                     sh "docker tag ${jenkinsImage}  ${ECR_IMAGE_TAG_HASH}"
                     sh "docker push -a ${ECR_IMAGE_TAG_LATEST}"
                 }
