@@ -2,82 +2,125 @@
 
 open Newtonsoft.Json
 open System.IO
+open System.Collections.Generic
 
-type User =
-    { Name: string
-      Initials: string
-      ARN: string }
+module Types =
+    type User =
+        { Name: string
+          Initials: string
+          ARN: string }
 
-let users =
-    let arn (name: string) =
+    type RepositoryPolicyStatement =
+        { Sid: string
+          Effect: string
+          Principal: {| AWS: string list |}
+          Action: string list }
+
+    type RepositoryPolicy =
+        { Version: string
+          Statement: RepositoryPolicyStatement list }
+
+    type EcrRepositoryCloudFormationResource =
+        { Type: string
+          Properties: {| RepositoryName: string
+                         RepositoryPolicyText: RepositoryPolicy |} }
+
+    type CloudFormationRoot =
+        { Resources: IDictionary<string, EcrRepositoryCloudFormationResource> }
+
+module Helpers =
+    open Types
+
+    let private getArn (name: string) =
         let firstName = name.Split(' ') |> Seq.head
         $"arn:aws:iam::862167864120:user/cloudshark-{firstName}"
 
-    let initials (name: string) =
+    let private getInitials (name: string) =
         name.Split(' ')
         |> Seq.map (fun s -> Seq.head s)
         |> Seq.fold (fun acc ch -> $"{acc}{ch}") ""
         |> fun s -> s.ToLower()
 
-    let names = File.ReadAllLines("team.txt")
+    let kebabToCamel (words: string) =
+        words.Split('-')
+        |> Seq.map (fun str -> $"{(string str.[0]).ToUpper()}{str[1..] |> string}")
+        |> Seq.fold (fun acc str -> $"{acc}{str}") ""
 
-    names
-    |> Seq.map (fun n ->
-        { Name = n
-          Initials = initials n
-          ARN = arn n })
+    let generateUsers filePath =
+        File.ReadAllLines(filePath)
+        |> Seq.map (fun fullName ->
+            { Name = fullName
+              Initials = getInitials fullName
+              ARN = getArn fullName })
+        |> Seq.toList
+
+module CloudFormationScript =
+    open Types
+    open Helpers
+
+    let generateRepositoryPolicy user users =
+        let actions =
+            [ "ecr:BatchGetImage"
+              "ecr:BatchCheckLayerAvailability"
+              "ecr:CompleteLayerUpload"
+              "ecr:GetDownloadUrlForLayer"
+              "ecr:InitiateLayerUpload"
+              "ecr:PutImage"
+              "ecr:UploadLayerPart" ]
+
+        let allowStatement =
+            { Sid = $"Allow {user.Name} push/pull"
+              Effect = "Allow"
+              Principal = {| AWS = [ user.ARN ] |}
+              Action = actions }
+
+        let denyStatement =
+            let otherUsers =
+                users
+                |> Seq.filter (fun u -> u <> user)
+                |> Seq.map (fun u -> u.ARN)
+                |> Seq.toList
+
+            { Sid = $"Deny others"
+              Effect = "Deny"
+              Principal = {| AWS = otherUsers |}
+              Action = actions }
+
+        { Version = "2008-10-17"
+          Statement = [ allowStatement; denyStatement ] }
+
+
+    let generateRepositoryRecord user users (service: string) =
+        { Type = "AWS::ECR::Repository"
+          Properties =
+            {| RepositoryName = $"{user.Initials}-{service}"
+               RepositoryPolicyText = generateRepositoryPolicy user users |} }
+
+
+    let generateCloudFormationRecord users services =
+        let resources =
+            dict [ for user in users do
+                       for service in services do
+                           let resourceName = kebabToCamel $"{user.Initials}-{service}-repository"
+                           resourceName, generateRepositoryRecord user users service ]
+
+        { Resources = resources }
+
+
+open Helpers
+open CloudFormationScript
 
 let services =
     [ "user"
       "bank"
       "transaction"
       "underwriter" ]
-    |> List.map (fun string -> $"{string}-microservice")
+    |> List.map (fun service -> $"{service}-microservice")
 
-let repositoryPolicyRecord user =
-    let actions =  [ 
-        "ecr:BatchGetImage"
-        "ecr:BatchCheckLayerAvailability"
-        "ecr:CompleteLayerUpload"
-        "ecr:GetDownloadUrlForLayer"
-        "ecr:InitiateLayerUpload"
-        "ecr:PutImage"
-        "ecr:UploadLayerPart" ]
-
-    let allowStatement =
-        {| Sid = $"Allow {user.Name} push/pull"
-           Effect = "Allow"
-           Principal = {| AWS = [user.ARN] |}
-           Action = actions |}
-
-    let denyStatement = {|
-        Sid = $"Deny others"
-        Effect = "Deny"
-        Principal = {| AWS = [ yield! users |> Seq.filter (fun u -> u <> user) |> Seq.map (fun u -> u.ARN) ] |}
-        Action = actions |}
-
-    {| Version = "2008-10-17"; Statement = [allowStatement; denyStatement]|}
-
-let repositoryRecord user service =
-    {| Type = "AWS::ECR::Repository"
-       Properties =
-        {| RepositoryName = $"{user.Initials}-{service}"
-           RepositoryPolicyText = repositoryPolicyRecord user |} |}
-
-let cloudFormationRecord =
-    let kebabToCamel (words: string) =
-        words.Split('-')
-        |> Seq.map (fun str -> $"{(string str.[0]).ToUpper()}{ str[1..] |> string}")
-        |> Seq.fold (fun acc str -> $"{acc}{str}") ""
-
-    let resources =
-        dict [ for user in users do
-                   for service in services do
-                       kebabToCamel $"{user.Initials}-{service}-repository", repositoryRecord user service ]
-
-    dict [ "Resources", resources ]
+let users = generateUsers "team.txt"
 
 let cloudFormationJson =
-    JsonConvert.SerializeObject cloudFormationRecord
+    generateCloudFormationRecord users services
+    |> JsonConvert.SerializeObject
 
 File.WriteAllText("cloud-formation.json", cloudFormationJson)
