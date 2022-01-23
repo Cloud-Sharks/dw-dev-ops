@@ -97,7 +97,7 @@ module CloudFormationScript =
                RepositoryPolicyText = generateRepositoryPolicy user users |} }
 
 
-    let generateCloudFormationRecord users services =
+    let generateSingletonCloudFormationRecord users services =
         let resources =
             dict [ for user in users do
                        for service in services do
@@ -106,6 +106,15 @@ module CloudFormationScript =
 
         { Resources = resources }
 
+    let generateSplitCloudFormationRecords users services =
+        users
+        |> Seq.map (fun user ->
+            let userResources =
+                dict [ for service in services do
+                           let resourceName = kebabToCamel $"{user.Initials}-{service}-repository"
+                           resourceName, generateRepositoryRecord user users service ]
+
+            {| Owner = user.Initials; CloudFormationRoot = { Resources = userResources } |})
 
 open Helpers
 open CloudFormationScript
@@ -119,8 +128,20 @@ let services =
 
 let users = generateUsers "team.txt"
 
-let cloudFormationJson =
-    generateCloudFormationRecord users services
-    |> JsonConvert.SerializeObject
+let generateSingletonJson users services = 
+    let cloudFormationJson =
+        generateSingletonCloudFormationRecord users services
+        |> JsonConvert.SerializeObject
 
-File.WriteAllText("cloud-formation.json", cloudFormationJson)
+    File.WriteAllText("cloud-formation-singleton.json", cloudFormationJson)
+
+let generateSplitJson outputDirectory users services =
+    if Directory.Exists(outputDirectory) |> not then
+        Directory.CreateDirectory(outputDirectory) |> ignore
+
+    let userJsonList = generateSplitCloudFormationRecords users services
+    
+    for json in userJsonList do
+        File.WriteAllText($"{outputDirectory}/{json.Owner}-cloud-formation.json", json.CloudFormationRoot |> JsonConvert.SerializeObject)
+
+generateSplitJson "team-cf-files" users services
