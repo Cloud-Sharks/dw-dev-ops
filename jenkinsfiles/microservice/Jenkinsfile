@@ -30,12 +30,6 @@ pipeline {
             }
         }
 
-        stage("Build Maven Project") {
-            steps {
-                sh "mvn clean package -Dmaven.test.skip=true"
-            }
-        }
-
         stage("Test") {
             when {
                 expression {
@@ -44,7 +38,13 @@ pipeline {
             }
 
             steps {
-                sh "mvn test"
+                sh "mvn clean test"
+            }
+        }
+
+        stage("Package Maven Project") {
+            steps {
+                sh "mvn package -Dmaven.test.skip=true"
             }
         }
 
