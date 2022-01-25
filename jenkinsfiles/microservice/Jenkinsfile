@@ -1,5 +1,6 @@
 // Leave blank
-def jenkinsImage = ""
+def taggedImageLatest = ""
+def taggedImageCommitHash = ""
 
 pipeline {
     agent any
@@ -55,10 +56,12 @@ pipeline {
 
             steps {
                 script {
-                    jenkinsImage = "${ECR_URL}/${ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
+                    taggedImageLatest = "${ECR_URL}/${ECR_REPOSITORY_NAME}:latest"
+                    taggedImageCommitHash = "${ECR_URL}/${ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
                 }
 
-                sh "docker build -t ${jenkinsImage} ."
+                sh "docker build -t ${taggedImageCommitHash} ."
+                sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
             }
         }
 
@@ -72,7 +75,8 @@ pipeline {
                         secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
                     ]]) {
                     sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_URL}"
-                    sh "docker push ${jenkinsImage}"
+                    sh "docker push ${taggedImageCommitHash}"
+                    sh "docker push ${taggedImageLatest}"
                 }
             }
         }
@@ -81,7 +85,8 @@ pipeline {
     post {
         always {
             sh "mvn clean"
-            sh "docker rmi ${jenkinsImage}"
+            sh "docker rmi ${taggedImageCommitHash}"
+            sh "docker rmi ${taggedImageLatest}"
         }
     }
 }
