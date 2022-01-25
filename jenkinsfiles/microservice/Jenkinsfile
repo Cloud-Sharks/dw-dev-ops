@@ -55,7 +55,7 @@ pipeline {
 
             steps {
                 script {
-                    jenkinsImage = "${ECR_URL}/{ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
+                    jenkinsImage = "${ECR_URL}/${ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
                 }
 
                 sh "docker build -t ${jenkinsImage} ."
