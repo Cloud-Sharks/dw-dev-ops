@@ -64,8 +64,6 @@ pipeline {
 
         stage("Deploy Image") {
             steps {
-                echo "Deploying image to ECR..."
-
                 withCredentials([
                     [
                         $class: "AmazonWebServicesCredentialsBinding",
