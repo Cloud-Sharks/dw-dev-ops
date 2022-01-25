@@ -56,11 +56,11 @@ pipeline {
 
             steps {
                 script {
-                    taggedImageLatest = "${ECR_URL}/${ECR_REPOSITORY_NAME}:latest"
+                    taggedImageLatest = "${ECR_URL}/${ECR_REPOSITORY_NAME}"
                     taggedImageCommitHash = "${ECR_URL}/${ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
                 }
 
-                sh "docker build -t ${taggedImageCommitHash} ."
+                sh "docker build -t ${taggedImageLatest} ."
                 sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
             }
         }
