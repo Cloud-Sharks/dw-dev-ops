@@ -55,7 +55,7 @@ pipeline {
 
             steps {
                 script {
-                    jenkinsImage = "jenkins-build:${COMMIT_HASH}"
+                    jenkinsImage = "${ECR_URL}/{ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
                 }
 
                 sh "docker build -t ${jenkinsImage} ."
@@ -63,11 +63,6 @@ pipeline {
         }
 
         stage("Deploy Image") {
-            environment {
-                COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
-                ECR_IMAGE_TAG_HASH = "${ECR_URL}/${ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
-            }
-
             steps {
                 echo "Deploying image to ECR..."
 
@@ -79,9 +74,16 @@ pipeline {
                         secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
                     ]]) {
                     sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_URL}"
-                    sh "docker tag ${jenkinsImage}  ${ECR_IMAGE_TAG_HASH}"
+                    sh "docker push ${jenkinsImage}"
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            sh "mvn clean"
+            sh "docker rmi ${jenkinsImage}"
         }
     }
 }
