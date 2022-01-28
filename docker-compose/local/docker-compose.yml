@@ -1,24 +1,24 @@
 version: "3.7"
 
 volumes:
-  aline-mysql-data:
+  aline-mysql-data-local:
 
 networks:
   default:
-    name: aline-network
+    name: aline-network-local
 
 services:
-  aline-db:
+  alinedb-local:
     image: mysql
     command: --default-authentication-plugin=mysql_native_password
-    container_name: aline-db
+    container_name: alinedb-local
     expose:
       - 3306
     env_file:
       - .env
     volumes:
       - ./init-sql:/docker-entrypoint-initdb.d:ro
-      - aline-mysql-data:/var/lib/mysql
+      - aline-mysql-data-local:/var/lib/mysql
     cap_add:
       - SYS_NICE
 
@@ -28,7 +28,7 @@ services:
     ports:
       - 9000:8080
     depends_on:
-      - aline-db
+      - alinedb-local
 
   user:
     image: captainsalt/user-microservice
@@ -40,7 +40,7 @@ services:
     ports:
       - 8070:8070
     depends_on:
-      - aline-db
+      - alinedb-local
 
   bank:
     image: captainsalt/bank-microservice
@@ -52,7 +52,7 @@ services:
     ports:
       - 8083:8083
     depends_on:
-      - aline-db
+      - alinedb-local
 
   transaction:
     image: captainsalt/transaction-microservice
@@ -64,7 +64,7 @@ services:
     ports:
       - 8073:8073
     depends_on:
-      - aline-db
+      - alinedb-local
 
   underwriter:
     image: captainsalt/underwriter-microservice
@@ -76,4 +76,4 @@ services:
     ports:
       - 8071:8071
     depends_on:
-      - aline-db
+      - alinedb-local
