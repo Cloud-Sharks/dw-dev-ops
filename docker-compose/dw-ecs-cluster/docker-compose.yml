@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   user:
-    image: 862167864120.dkr.ecr.us-east-1.amazonaws.com/dw-user-microservice:01348ed
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-user-microservice:01348ed
     env_file:
       - .env
     environment:
@@ -11,7 +11,7 @@ services:
       - ${USER_PORT}:${USER_PORT}
 
   bank:
-    image: 862167864120.dkr.ecr.us-east-1.amazonaws.com/dw-bank-microservice:ae84f31
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-bank-microservice:ae84f31
     env_file:
       - .env
     environment:
@@ -20,7 +20,7 @@ services:
       - ${BANK_PORT}:${BANK_PORT}
 
   transaction:
-    image: 862167864120.dkr.ecr.us-east-1.amazonaws.com/dw-transaction-microservice:054e2a0
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-transaction-microservice:054e2a0
     env_file:
       - .env
     environment:
@@ -29,7 +29,7 @@ services:
       - ${TRANSACTION_PORT}:${TRANSACTION_PORT}
 
   underwriter:
-    image: 862167864120.dkr.ecr.us-east-1.amazonaws.com/dw-underwriter-microservice:baad1dc
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-underwriter-microservice:baad1dc
     env_file:
       - .env
     environment:
