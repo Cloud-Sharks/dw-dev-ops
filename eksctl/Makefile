@@ -1,14 +1,4 @@
-region=us-east-2
-policyName=AWSLoadBalancerControllerIAMPolicy
-policyDocument=iam_policy.json
-clusterName=dw-eks
-serviceAccountName=aws-load-balancer-controller
-accountId=862167864120
-publicNgName=public-ng
-privateNgName=private-ng
-fargateProfileName=fargate
-fargateNamespace=microservice
-
+include .env
 init: create_cluster create_node_group create_fargate_profile lbInstall
 lbInit: create_iam_policy
 lbInstall: set_context create_service_account apply_load_balancer
