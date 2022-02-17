@@ -1,5 +1,5 @@
-apply: install_bank install_user install_transaction install_underwriter
-delete: delete_bank delete_user delete_transaction delete_underwriter
+install: install_bank install_user install_transaction install_underwriter
+uninstall: uninstall_bank uninstall_user uninstall_transaction uninstall_underwriter
 upgrade: upgrade_bank upgrade_user upgrade_transaction upgrade_underwriter
 
 install_bank:
@@ -22,16 +22,16 @@ install_underwriter:
 		--values secret.values.yml \
 		--values microservice-values/underwriter.values.yml
 
-delete_bank:
+uninstall_bank:
 	helm uninstall bank-microservice
 
-delete_user:
+uninstall_user:
 	helm uninstall user-microservice
 
-delete_transaction:
+uninstall_transaction:
 	helm uninstall transaction-microservice
 
-delete_underwriter:
+uninstall_underwriter:
 	helm uninstall underwriter-microservice
 
 upgrade_bank:
