@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: underwriter-deployment
+  namespace: microservice
+  labels:
+    app: underwriter-microservice
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: underwriter-microservice
+  template:
+    metadata:
+      labels:
+        app: underwriter-microservice
+    spec:
+      containers:
+        - name: underwriter-microservice
+          image: 862167864120.dkr.ecr.us-east-1.amazonaws.com/dw-underwriter-microservice
+          resources:
+            limits:
+              cpu: "2"
+              memory: "4G"
+          ports:
+            - containerPort: 8071
+          env:
+            - name: APP_PORT
+              value: "8071"
+          envFrom:
+            - configMapRef:
+                name: eks-config
+                optional: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: underwriter-service
+  namespace: microservice
+  labels:
+    app: underwriter-microservice
+spec:
+  type: NodePort
+  selector:
+    app: underwriter-microservice
+  ports:
+    - protocol: TCP
+      port: 8071
+      targetPort: 8071
+      nodePort: 30002
