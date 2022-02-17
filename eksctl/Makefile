@@ -22,7 +22,6 @@ create_cluster:
 		--alb-ingress-access \
 		--without-nodegroup \
 		--vpc-nat-mode Single \
-		--set-kubeconfig-context false
 
 set_context:
 	eksctl utils write-kubeconfig \
