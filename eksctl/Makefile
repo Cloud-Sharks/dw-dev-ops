@@ -8,7 +8,6 @@ publicNgName=public-ng
 privateNgName=private-ng
 fargateProfileName=fargate
 fargateNamespace=microservice
-vpcId=vpc-047f6fab365f6f952
 
 init: create_cluster create_node_group create_fargate_profile lbInstall
 lbInit: create_iam_policy
