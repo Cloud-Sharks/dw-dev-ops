@@ -8,6 +8,8 @@ metadata:
     app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
 spec:
   replicas: {{ required ".Values.replicas" .Values.replicas }}
+  strategy:
+    type: {{ .Values.strategy.type }}
   selector:
     matchLabels:
       app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
