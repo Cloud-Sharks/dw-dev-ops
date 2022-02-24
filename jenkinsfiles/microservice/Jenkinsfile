@@ -94,8 +94,7 @@ pipeline {
     post {
         always {
             sh "mvn clean"
-            sh "docker rmi ${taggedImageCommitHash}"
-            sh "docker rmi ${taggedImageLatest}"
+            sh "docker system prune -f"
         }
     }
 }
