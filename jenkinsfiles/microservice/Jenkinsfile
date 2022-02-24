@@ -14,7 +14,7 @@ pipeline {
         string description: "Name of the branch to checkout", name: "BRANCH_NAME", trim: true
         string description: "ECR Url. Example 862167864120.dkr.ecr.us-east-1.amazonaws.com", name: "ECR_URL", trim: true
         string description: "ECR Repository Name. Example dw-bank-microservice", name: "ECR_REPOSITORY_NAME", trim: true
-        string description: "Sonarcube URL", name: "SONARCUBE_URL", trim: true
+        string description: "Sonarcube URL Example http://localhost:9000", name: "SONARCUBE_URL", trim: true
         booleanParam defaultValue: true, description: "Run the tests during the build?", name: "RUN_TESTS"
     }
 
