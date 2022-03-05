@@ -74,7 +74,7 @@ pipeline {
             }
         }
 
-        stage("Deploy Image") {
+        stage("Push Image") {
             steps {
                 withCredentials([
                     [
