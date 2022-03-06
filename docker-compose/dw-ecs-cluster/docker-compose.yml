@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   user:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-user-microservice:01348ed
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-user-microservice:latest
     env_file:
       - .env
     environment:
@@ -16,7 +16,7 @@ services:
           memory: 2G
 
   bank:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-bank-microservice:ae84f31
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-bank-microservice:latest
     env_file:
       - .env
     environment:
@@ -30,7 +30,7 @@ services:
           memory: 2G
 
   transaction:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-transaction-microservice:054e2a0
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-transaction-microservice:latest
     env_file:
       - .env
     environment:
@@ -44,7 +44,7 @@ services:
           memory: 2G
 
   underwriter:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-underwriter-microservice:baad1dc
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/dw-underwriter-microservice:latest
     env_file:
       - .env
     environment:
