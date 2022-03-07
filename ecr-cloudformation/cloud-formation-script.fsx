@@ -66,7 +66,7 @@ module CloudFormationScript =
 
     let generateLifecyclePolicy =
         let policy = File.ReadAllText("lifecyclepolicy.json")
-        { LifecyclePolicyText = JObject.Parse(policy); RegistryId = "862167864120" }
+        { LifecyclePolicyText = policy; RegistryId = "862167864120" }
 
     let generateRepositoryPolicy user users =
         let actions =
