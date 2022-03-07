@@ -1,6 +1,7 @@
 #r "nuget: Newtonsoft.Json"
 
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
 open System.IO
 open System.Collections.Generic
 
@@ -20,10 +21,15 @@ module Types =
         { Version: string
           Statement: RepositoryPolicyStatement list }
 
+    type LifecyclePolicy = 
+        { LifecyclePolicyText: obj
+          RegistryId: string }
+
     type EcrRepositoryCloudFormationResource =
         { Type: string
           Properties: {| RepositoryName: string
-                         RepositoryPolicyText: RepositoryPolicy |} }
+                         RepositoryPolicyText: RepositoryPolicy
+                         LifecyclePolicy: LifecyclePolicy |} }
 
     type CloudFormationRoot =
         { Resources: IDictionary<string, EcrRepositoryCloudFormationResource> }
@@ -57,6 +63,10 @@ module Helpers =
 module CloudFormationScript =
     open Types
     open Helpers
+
+    let generateLifecyclePolicy =
+        let policy = File.ReadAllText("lifecyclepolicy.json")
+        { LifecyclePolicyText = JObject.Parse(policy); RegistryId = "862167864120" }
 
     let generateRepositoryPolicy user users =
         let actions =
@@ -94,7 +104,8 @@ module CloudFormationScript =
         { Type = "AWS::ECR::Repository"
           Properties =
             {| RepositoryName = $"{user.Initials}-{service}"
-               RepositoryPolicyText = generateRepositoryPolicy user users |} }
+               RepositoryPolicyText = generateRepositoryPolicy user users
+               LifecyclePolicy = generateLifecyclePolicy |} }
 
 
     let generateSingletonCloudFormationRecord users services =
