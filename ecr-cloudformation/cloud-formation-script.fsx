@@ -22,7 +22,7 @@ module Types =
           Statement: RepositoryPolicyStatement list }
 
     type LifecyclePolicy = 
-        { LifecyclePolicyText: obj
+        { LifecyclePolicyText: string
           RegistryId: string }
 
     type EcrRepositoryCloudFormationResource =
@@ -66,7 +66,8 @@ module CloudFormationScript =
 
     let generateLifecyclePolicy =
         let policy = File.ReadAllText("lifecyclepolicy.json")
-        { LifecyclePolicyText = policy; RegistryId = "862167864120" }
+        let formatted = JObject.Parse(policy).ToString(Newtonsoft.Json.Formatting.None)
+        { LifecyclePolicyText = formatted; RegistryId = "862167864120" }
 
     let generateRepositoryPolicy user users =
         let actions =
