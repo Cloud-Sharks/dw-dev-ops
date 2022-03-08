@@ -1,3 +1,4 @@
 .ionide
 *.json
 *.txt
+!lifecyclepolicy.json
