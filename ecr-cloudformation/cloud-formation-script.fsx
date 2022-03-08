@@ -6,6 +6,10 @@ open System.IO
 open System.Collections.Generic
 
 module Types =
+    type Config = 
+        { AccountId: string
+          Members: string list }
+
     type User =
         { Name: string
           Initials: string
@@ -37,9 +41,9 @@ module Types =
 module Helpers =
     open Types
 
-    let private getArn (name: string) =
+    let private getArn config (name: string) =
         let firstName = name.Split(' ') |> Seq.head
-        $"arn:aws:iam::862167864120:user/cloudshark-{firstName}"
+        $"arn:aws:iam::{config.AccountId}:user/cloudshark-{firstName}"
 
     let private getInitials (name: string) =
         name.Split(' ')
@@ -47,27 +51,31 @@ module Helpers =
         |> Seq.fold (fun acc ch -> $"{acc}{ch}") ""
         |> fun s -> s.ToLower()
 
+    let generateConfig configPath = 
+        let configJson = File.ReadAllText(configPath) 
+        JsonConvert.DeserializeObject<Config>(configJson)
+
     let kebabToCamel (words: string) =
         words.Split('-')
         |> Seq.map (fun str -> $"{(string str.[0]).ToUpper()}{str[1..] |> string}")
         |> Seq.fold (fun acc str -> $"{acc}{str}") ""
 
-    let generateUsers filePath =
-        File.ReadAllLines(filePath)
+    let generateUsers config =
+        config.Members
         |> Seq.map (fun fullName ->
             { Name = fullName
               Initials = getInitials fullName
-              ARN = getArn fullName })
+              ARN = getArn config fullName })
         |> Seq.toList
 
 module CloudFormationScript =
     open Types
     open Helpers
 
-    let generateLifecyclePolicy =
+    let generateLifecyclePolicy config =
         let policy = File.ReadAllText("lifecyclepolicy.json")
         let formatted = JObject.Parse(policy).ToString(Newtonsoft.Json.Formatting.None)
-        { LifecyclePolicyText = formatted; RegistryId = "862167864120" }
+        { LifecyclePolicyText = formatted; RegistryId = config.AccountId }
 
     let generateRepositoryPolicy user users =
         let actions =
@@ -101,30 +109,34 @@ module CloudFormationScript =
           Statement = [ allowStatement; denyStatement ] }
 
 
-    let generateRepositoryRecord user users (service: string) =
+    let generateRepositoryRecord config user users (service: string) =
         { Type = "AWS::ECR::Repository"
           Properties =
             {| RepositoryName = $"{user.Initials}-{service}"
                RepositoryPolicyText = generateRepositoryPolicy user users
-               LifecyclePolicy = generateLifecyclePolicy |} }
+               LifecyclePolicy = generateLifecyclePolicy config |} }
 
 
-    let generateSingletonCloudFormationRecord users services =
+    let generateSingletonCloudFormationRecord config services =
+        let userList = generateUsers config 
+    
         let resources =
-            dict [ for user in users do
+            dict [ for user in userList do
                        for service in services do
                            let resourceName = kebabToCamel $"{user.Initials}-{service}-repository"
-                           resourceName, generateRepositoryRecord user users service ]
+                           resourceName, generateRepositoryRecord config user userList service ]
 
         { Resources = resources }
 
-    let generateSplitCloudFormationRecords users services =
-        users
+    let generateSplitCloudFormationRecords config services =
+        let userList = generateUsers config 
+    
+        userList
         |> Seq.map (fun user ->
             let userResources =
                 dict [ for service in services do
                            let resourceName = kebabToCamel $"{user.Initials}-{service}-repository"
-                           resourceName, generateRepositoryRecord user users service ]
+                           resourceName, generateRepositoryRecord config user userList service ]
 
             {| Owner = user.Initials; CloudFormationRoot = { Resources = userResources } |})
 
@@ -138,22 +150,23 @@ let services =
       "underwriter" ]
     |> List.map (fun service -> $"{service}-microservice")
 
-let users = generateUsers "team.txt"
 
-let generateSingletonJson users services = 
+let config = generateConfig "config.json"
+
+let generateSingletonJson config services = 
     let cloudFormationJson =
-        generateSingletonCloudFormationRecord users services
+        generateSingletonCloudFormationRecord config services
         |> JsonConvert.SerializeObject
 
     File.WriteAllText("cloud-formation-singleton.json", cloudFormationJson)
 
-let generateSplitJson outputDirectory users services =
+let generateSplitJson config outputDirectory services =
     if Directory.Exists(outputDirectory) |> not then
         Directory.CreateDirectory(outputDirectory) |> ignore
 
-    let userJsonList = generateSplitCloudFormationRecords users services
+    let userJsonList = generateSplitCloudFormationRecords config services
     
     for json in userJsonList do
         File.WriteAllText($"{outputDirectory}/{json.Owner}-cloud-formation.json", json.CloudFormationRoot |> JsonConvert.SerializeObject)
 
-generateSplitJson "team-cf-files" users services
+generateSplitJson config "team-cf-files" services
