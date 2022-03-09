@@ -4,7 +4,7 @@ Local Kubernetes deployment of the Aline Financial Application
 
 ## Deployment
 
-- Change directory to root direcory of this readme
+- Change directory to root directory of this readme
 - Run `git secret reveal` to reveal hidden files
 - Run `kubectl apply -f config`
 - Run `kubectl apply -f persistent-volumes`
