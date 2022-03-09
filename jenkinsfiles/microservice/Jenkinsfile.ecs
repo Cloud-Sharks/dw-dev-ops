@@ -1,0 +1,121 @@
+// Leave blank
+def taggedImageLatest = ""
+def taggedImageCommitHash = ""
+
+pipeline {
+    agent any
+
+    tools {
+        maven "Maven 3.8.4"
+    }
+
+    parameters {
+        string description: "Url of the repository. Example: https://github.com/davidsmoothstack/aline-bank-microservice.git", name: "REPO_URL", trim: true
+        string description: "Name of the branch to checkout", name: "BRANCH_NAME", trim: true
+        string description: "ECR Url. Example 862167864120.dkr.ecr.us-east-1.amazonaws.com", name: "ECR_URL", trim: true
+        string description: "ECR Repository Name. Example dw-bank-microservice", name: "ECR_REPOSITORY_NAME", trim: true
+        string description: "Sonarcube URL Example http://localhost:9000", name: "SONARCUBE_URL", trim: true
+        string description: "ECS Cluster Name", name: "ECS_CLUSTER", trim: true
+        string description: "ECS Service Name", name: "ECS_SERVICE", trim: true
+        booleanParam defaultValue: true, description: "Run the tests during the build?", name: "RUN_TESTS"
+    }
+
+    stages {
+        stage("Clone") {
+            steps {
+                git "${params.REPO_URL}"
+            }
+        }
+
+        stage("Checkout") {
+            steps {
+                sh "git checkout ${params.BRANCH_NAME}"
+                sh "git submodule init && git submodule update"
+            }
+        }
+
+        stage("Test") {
+            when {
+                expression {
+                    params.RUN_TESTS == true
+                }
+            }
+
+            steps {
+                sh "mvn clean test"
+            }
+        }
+
+        stage("Package Maven Project") {
+            steps {
+                sh "mvn package -Dmaven.test.skip=true"
+            }
+        }
+
+        stage("Code Quality Check (Sonarcube)") {
+            steps {
+                withCredentials([string(credentialsId: 'SonarcubeToken', variable: 'SONARCUBE_TOKEN')]) {
+                    sh "mvn sonar:sonar -Dsonar.host.url=${SONARCUBE_URL} -Dsonar.login=${SONARCUBE_TOKEN}"
+                }
+            }
+        }
+
+        stage("Build Docker Image") {
+            environment {
+                COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
+            }
+
+            steps {
+                script {
+                    taggedImageLatest = "${ECR_URL}/${ECR_REPOSITORY_NAME}"
+                    taggedImageCommitHash = "${ECR_URL}/${ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
+                }
+
+                sh "docker build -t ${taggedImageLatest} ."
+                sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
+            }
+        }
+
+        stage("Push Image") {
+            steps {
+                withCredentials([
+                    [
+                        $class: "AmazonWebServicesCredentialsBinding",
+                        credentialsId: "Jenkins-AWS-Credentials",
+                        accessKeyVariable: "AWS_ACCESS_KEY_ID",
+                        secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
+                    ]]) {
+                    sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_URL}"
+                    sh "docker push ${taggedImageCommitHash}"
+                    sh "docker push ${taggedImageLatest}"
+                }
+            }
+        }
+
+        stage("Deploy ECS Cluster") {
+            steps {
+                 withCredentials([
+                    [
+                        $class: "AmazonWebServicesCredentialsBinding",
+                        credentialsId: "Jenkins-AWS-Credentials",
+                        accessKeyVariable: "AWS_ACCESS_KEY_ID",
+                        secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
+                    ]]) {
+                    sh '''
+                        aws ecs list-services --cluster dw-ecs-cluster --output text \
+                        | grep -oE arn.+ \
+                        | grep ${ECS_SERVICE} \
+                        | "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service"
+                    '''                        
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh "mvn clean"
+            sh "docker system prune -f"
+        }
+    }
+}
