@@ -108,10 +108,10 @@ pipeline {
                     script {
                         // Scans the output of aws ecs list-services for the arns of the services in the cluster
                         // After it selects the service specified by ECS_SERVICE parameter
-                        env.SERVICE_LIST = "`aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE arn.+ | grep -i ${ECS_SERVICE}`"
+                        env.SERVICE = "`aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE arn.+ | grep -i ${ECS_SERVICE}`"
                     }
 
-                    sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${SERVICE_LIST}"
+                    sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${SERVICE}"
                 }
             }
         }
