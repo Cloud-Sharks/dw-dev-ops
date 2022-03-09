@@ -106,7 +106,7 @@ pipeline {
                         | grep -oE arn.+ \
                         | grep ${ECS_SERVICE} \
                         | "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service"
-                    '''                        
+                    '''
                 }
             }
         }
