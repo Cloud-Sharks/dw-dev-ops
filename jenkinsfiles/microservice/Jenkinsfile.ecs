@@ -16,7 +16,8 @@ pipeline {
         string description: "ECR Repository Name. Example dw-bank-microservice", name: "ECR_REPOSITORY_NAME", trim: true
         string description: "Sonarcube URL Example http://localhost:9000", name: "SONARCUBE_URL", trim: true
         string description: "ECS Cluster Name", name: "ECS_CLUSTER", trim: true
-        string description: "ECS Service Name", name: "ECS_SERVICE", trim: true
+        string description: "ECS Service Name. Example bank", name: "ECS_SERVICE", trim: true
+        string description: "ECR Region. Example us-east-1", name: "ECS_REGION", trim: true
         booleanParam defaultValue: true, description: "Run the tests during the build?", name: "RUN_TESTS"
     }
 
@@ -101,12 +102,16 @@ pipeline {
                         accessKeyVariable: "AWS_ACCESS_KEY_ID",
                         secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
                     ]]) {
-                    sh '''
-                        aws ecs list-services --cluster dw-ecs-cluster --output text \
-                        | grep -oE arn.+ \
-                        | grep -i ${ECS_SERVICE} \
-                        | "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service"
-                    '''
+
+                    sh "aws configure set default.region ${ECS_REGION}"
+
+                    script {
+                        // Scans the output of aws ecs list-services for the arns of the services in the cluster
+                        // After it selects the service specified by ECS_SERVICE parameter
+                        env.SERVICE_LIST = "`aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE arn.+ | grep -i ${ECS_SERVICE}`"
+                    }
+
+                    sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${SERVICE_LIST}"
                 }
             }
         }
