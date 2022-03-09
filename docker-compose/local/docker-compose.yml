@@ -31,7 +31,7 @@ services:
       - alinedb-local
 
   user:
-    image: captainsalt/user-microservice
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/dw-user-microservice:latest
     restart: unless-stopped
     env_file:
       - .env
@@ -43,7 +43,7 @@ services:
       - alinedb-local
 
   bank:
-    image: captainsalt/bank-microservice
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/dw-bank-microservice:latest
     restart: unless-stopped
     env_file:
       - .env
@@ -55,7 +55,7 @@ services:
       - alinedb-local
 
   transaction:
-    image: captainsalt/transaction-microservice
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/dw-transaction-microservice:latest
     restart: unless-stopped
     env_file:
       - .env
@@ -67,7 +67,7 @@ services:
       - alinedb-local
 
   underwriter:
-    image: captainsalt/underwriter-microservice
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/dw-underwriter-microservice:latest
     restart: unless-stopped
     env_file:
       - .env
