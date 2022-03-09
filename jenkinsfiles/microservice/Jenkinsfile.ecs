@@ -104,7 +104,7 @@ pipeline {
                     sh '''
                         aws ecs list-services --cluster dw-ecs-cluster --output text \
                         | grep -oE arn.+ \
-                        | grep ${ECS_SERVICE} \
+                        | grep -i ${ECS_SERVICE} \
                         | "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service"
                     '''
                 }
