@@ -12,7 +12,7 @@ def getServiceName(gitRepositoryUrl) {
     if (acceptable.contains(serviceName) == false) {
         error "Invalid service name"
     }
-    
+
     return serviceName
 }
 
@@ -60,20 +60,14 @@ pipeline {
             }
 
             steps {
-                sh "mvn clean test"
-            }
-        }
-
-        stage("Package Maven Project") {
-            steps {
-                sh "mvn package -Dmaven.test.skip=true"
+                sh "mvn clean install test"
             }
         }
 
         stage("Code Quality Check (Sonarcube)") {
             steps {
                 withCredentials([string(credentialsId: 'SonarcubeToken', variable: 'SONARCUBE_TOKEN')]) {
-                    sh "mvn sonar:sonar -Dsonar.host.url=${SONARCUBE_URL} -Dsonar.login=${SONARCUBE_TOKEN}"
+                    sh "mvn verify sonar:sonar -Dmaven.test.skip=true -Dsonar.host.url=${SONARCUBE_URL} -Dsonar.login=${SONARCUBE_TOKEN}"
                 }
             }
         }
