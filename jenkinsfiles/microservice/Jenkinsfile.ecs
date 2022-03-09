@@ -1,6 +1,12 @@
 // Leave blank
+def serviceName = ""
 def taggedImageLatest = ""
 def taggedImageCommitHash = ""
+
+def getServiceName(gitRepositoryUrl) {
+    def result = (gitRepositoryUrl =~ /^.*aline-(.+?)-microservice.*/)[0][1]
+    return result
+}
 
 pipeline {
     agent any
@@ -13,11 +19,9 @@ pipeline {
         string description: "Url of the repository. Example: https://github.com/davidsmoothstack/aline-bank-microservice.git", name: "REPO_URL", trim: true
         string description: "Name of the branch to checkout", name: "BRANCH_NAME", trim: true
         string description: "ECR Url. Example 862167864120.dkr.ecr.us-east-1.amazonaws.com", name: "ECR_URL", trim: true
-        string description: "ECR Repository Name. Example dw-bank-microservice", name: "ECR_REPOSITORY_NAME", trim: true
-        string description: "Sonarcube URL Example http://localhost:9000", name: "SONARCUBE_URL", trim: true
         string description: "ECS Cluster Name", name: "ECS_CLUSTER", trim: true
-        string description: "ECS Service Name. Example bank", name: "ECS_SERVICE", trim: true
-        string description: "ECR Region. Example us-east-1", name: "ECS_REGION", trim: true
+        string description: "ECS Deployment Region. Example us-east-1", name: "ECS_REGION", trim: true
+        string description: "Sonarcube URL Example http://localhost:9000", name: "SONARCUBE_URL", trim: true
         booleanParam defaultValue: true, description: "Run the tests during the build?", name: "RUN_TESTS"
     }
 
@@ -25,6 +29,11 @@ pipeline {
         stage("Clone") {
             steps {
                 git "${params.REPO_URL}"
+
+                // Set the global service name
+                script {
+                    serviceName = getServiceName(params.REPO_URL)
+                }
             }
         }
 
@@ -64,12 +73,13 @@ pipeline {
         stage("Build Docker Image") {
             environment {
                 COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
+                ECR_REPOSITORY = "dw-${serviceName}-microservice"
             }
 
             steps {
                 script {
-                    taggedImageLatest = "${ECR_URL}/${ECR_REPOSITORY_NAME}"
-                    taggedImageCommitHash = "${ECR_URL}/${ECR_REPOSITORY_NAME}:${COMMIT_HASH}"
+                    taggedImageLatest = "${ECR_URL}/${ECR_REPOSITORY}"
+                    taggedImageCommitHash = "${ECR_URL}/${ECR_REPOSITORY}:${COMMIT_HASH}"
                 }
 
                 sh "docker build -t ${taggedImageLatest} ."
@@ -108,10 +118,10 @@ pipeline {
                     script {
                         // Scans the output of aws ecs list-services for the arns of the services in the cluster
                         // After it selects the service specified by ECS_SERVICE parameter
-                        env.SERVICE = "`aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE arn.+ | grep -i ${ECS_SERVICE}`"
+                        env.SERVICE_ARN = "`aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE arn.+ | grep -i ${serviceName}`"
                     }
 
-                    sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${SERVICE}"
+                    sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${SERVICE_ARN}"
                 }
             }
         }
