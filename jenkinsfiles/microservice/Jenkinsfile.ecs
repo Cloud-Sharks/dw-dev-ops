@@ -37,7 +37,7 @@ pipeline {
     stages {
         stage("Clone") {
             steps {
-                git branch: "${BRANCH_NAME}", credentialsId: "`GITHUB_CREDENTIALS`", url: "${REPO_URL}"
+                git branch: "${BRANCH_NAME}", credentialsId: "${GITHUB_CREDENTIALS}", url: "${REPO_URL}"
                 sh "git submodule init && git submodule update"
 
                 // Set the global service name
