@@ -3,12 +3,6 @@ version: "3.7"
 services:
   user:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/dw-user-microservice:latest
-    logging:
-      driver: "awslogs"
-      options:
-        awslogs-region: ${LOG_REGION}
-        awslogs-group: ${LOG_GROUP}
-        awslogs-create-group: "true"
     env_file:
       - .env
     environment:
@@ -23,12 +17,6 @@ services:
 
   bank:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/dw-bank-microservice:latest
-    logging:
-      driver: "awslogs"
-      options:
-        awslogs-region: ${LOG_REGION}
-        awslogs-group: ${LOG_GROUP}
-        awslogs-create-group: "true"
     env_file:
       - .env
     environment:
@@ -43,12 +31,6 @@ services:
 
   transaction:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/dw-transaction-microservice:latest
-    logging:
-      driver: "awslogs"
-      options:
-        awslogs-region: ${LOG_REGION}
-        awslogs-group: ${LOG_GROUP}
-        awslogs-create-group: "true"
     env_file:
       - .env
     environment:
@@ -63,12 +45,6 @@ services:
 
   underwriter:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/dw-underwriter-microservice:latest
-    logging:
-      driver: "awslogs"
-      options:
-        awslogs-region: ${LOG_REGION}
-        awslogs-group: ${LOG_GROUP}
-        awslogs-create-group: "true"
     env_file:
       - .env
     environment:
