@@ -24,7 +24,6 @@ pipeline {
     }
 
     parameters {
-        string description: "Github Credentials Name", name: "GITHUB_CREDENTIALS", trim: true
         string description: "Url of the repository. Example: https://github.com/Cloud-Sharks/aline-bank-microservice.git", name: "REPO_URL", trim: true
         string description: "Name of the branch to checkout", name: "BRANCH_NAME", trim: true
         string description: "ECR Url. Example 12345678910.dkr.ecr.us-east-1.amazonaws.com", name: "ECR_URL", trim: true
@@ -37,7 +36,7 @@ pipeline {
     stages {
         stage("Clone") {
             steps {
-                git branch: "${BRANCH_NAME}", credentialsId: "${GITHUB_CREDENTIALS}", url: "${REPO_URL}"
+                git branch: "${BRANCH_NAME}", credentialsId: "davidsmoothstack-githubtoken", url: "${REPO_URL}"
                 sh "git submodule init && git submodule update"
 
                 // Set the global service name
