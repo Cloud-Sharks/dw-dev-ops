@@ -6,128 +6,128 @@ def taggedImageCommitHash = ""
 // Extracts the service name from the git url
 // It should return bank, underwriter, user or transaction
 def getServiceName(gitRepositoryUrl) {
-    def acceptable = ["bank", "underwriter", "user", "transaction"]
-    def serviceName = (gitRepositoryUrl =~ /^.*aline-(.+?)-microservice.*/)[0][1]
+  def acceptable = ["bank", "underwriter", "user", "transaction"]
+  def serviceName = (gitRepositoryUrl = ~/^.*aline-(.+?)-microservice.*/)[0][1]
 
-    if (acceptable.contains(serviceName) == false) {
-        error "Invalid service name"
-    }
+  if (acceptable.contains(serviceName) == false) {
+    error "Invalid service name"
+  }
 
-    return serviceName
+  return serviceName
 }
 
 pipeline {
-    agent any
+  agent any
 
-    tools {
-        maven "Maven 3.8.4"
+  tools {
+    maven "Maven 3.8.4"
+  }
+
+  parameters {
+    string description: "Url of the repository. Example: https://github.com/Cloud-Sharks/aline-bank-microservice.git", name: "REPO_URL", trim: true
+    string description: "Name of the branch to checkout", name: "BRANCH_NAME", trim: true
+    string description: "ECR Url. Example 12345678910.dkr.ecr.us-east-1.amazonaws.com", name: "ECR_URL", trim: true
+    string description: "ECS Cluster Name", name: "ECS_CLUSTER", trim: true
+    string description: "ECS Deployment Region. Example us-east-1", name: "ECS_REGION", trim: true
+    string defaultValue: "http://localhost:9000", description: "Sonarcube URL Example http://localhost:9000", name: "SONARCUBE_URL", trim: true
+    booleanParam defaultValue: true, description: "Run the tests during the build?", name: "RUN_TESTS"
+  }
+
+  stages {
+    stage("Clone") {
+      steps {
+        git branch: "${BRANCH_NAME}", credentialsId: "davidsmoothstack-githubtoken", url: "${REPO_URL}"
+        sh "git submodule init && git submodule update"
+
+        // Set the global service name
+        script {
+          serviceName = getServiceName(params.REPO_URL)
+        }
+      }
     }
 
-    parameters {
-        string description: "Url of the repository. Example: https://github.com/Cloud-Sharks/aline-bank-microservice.git", name: "REPO_URL", trim: true
-        string description: "Name of the branch to checkout", name: "BRANCH_NAME", trim: true
-        string description: "ECR Url. Example 12345678910.dkr.ecr.us-east-1.amazonaws.com", name: "ECR_URL", trim: true
-        string description: "ECS Cluster Name", name: "ECS_CLUSTER", trim: true
-        string description: "ECS Deployment Region. Example us-east-1", name: "ECS_REGION", trim: true
-        string defaultValue: "http://localhost:9000", description: "Sonarcube URL Example http://localhost:9000", name: "SONARCUBE_URL", trim: true
-        booleanParam defaultValue: true, description: "Run the tests during the build?", name: "RUN_TESTS"
+    stage("Test") {
+      when {
+        expression {
+          params.RUN_TESTS == true
+        }
+      }
+
+      steps {
+        sh "mvn clean install test"
+      }
     }
 
-    stages {
-        stage("Clone") {
-            steps {
-                git branch: "${BRANCH_NAME}", credentialsId: "davidsmoothstack-githubtoken", url: "${REPO_URL}"
-                sh "git submodule init && git submodule update"
-
-                // Set the global service name
-                script {
-                    serviceName = getServiceName(params.REPO_URL)
-                }
-            }
+    stage("Code Quality Check (Sonarcube)") {
+      steps {
+        withCredentials([string(credentialsId: 'SonarcubeToken', variable: 'SONARCUBE_TOKEN')]) {
+          sh "mvn verify sonar:sonar -Dmaven.test.skip=true -Dsonar.host.url=${SONARCUBE_URL} -Dsonar.login=${SONARCUBE_TOKEN}"
         }
-
-        stage("Test") {
-            when {
-                expression {
-                    params.RUN_TESTS == true
-                }
-            }
-
-            steps {
-                sh "mvn clean install test"
-            }
-        }
-
-        stage("Code Quality Check (Sonarcube)") {
-            steps {
-                withCredentials([string(credentialsId: 'SonarcubeToken', variable: 'SONARCUBE_TOKEN')]) {
-                    sh "mvn verify sonar:sonar -Dmaven.test.skip=true -Dsonar.host.url=${SONARCUBE_URL} -Dsonar.login=${SONARCUBE_TOKEN}"
-                }
-            }
-        }
-
-        stage("Build Docker Image") {
-            environment {
-                COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
-                ECR_REPOSITORY = "dw-${serviceName}-microservice"
-            }
-
-            steps {
-                script {
-                    taggedImageLatest = "${ECR_URL}/${ECR_REPOSITORY}"
-                    taggedImageCommitHash = "${ECR_URL}/${ECR_REPOSITORY}:${COMMIT_HASH}"
-                }
-
-                sh "docker build -t ${taggedImageLatest} ."
-                sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
-            }
-        }
-
-        stage("Push Image") {
-            steps {
-                withCredentials([
-                    [
-                        $class: "AmazonWebServicesCredentialsBinding",
-                        credentialsId: "Jenkins-AWS-Credentials",
-                        accessKeyVariable: "AWS_ACCESS_KEY_ID",
-                        secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
-                    ]
-                ]) {
-                    sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_URL}"
-                    sh "docker push ${taggedImageCommitHash}"
-                    sh "docker push ${taggedImageLatest}"
-                }
-            }
-        }
-
-        stage("Deploy ECS Cluster") {
-            steps {
-                withCredentials([
-                    [
-                        $class: "AmazonWebServicesCredentialsBinding",
-                        credentialsId: "Jenkins-AWS-Credentials",
-                        accessKeyVariable: "AWS_ACCESS_KEY_ID",
-                        secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
-                    ]
-                ]) {
-                    sh "aws configure set default.region ${ECS_REGION}"
-
-                    script {
-                        // Scans the output of aws ecs list-services for the arns of the services in the cluster
-                        // After it selects the service specified by the getServiceName
-                        env.SERVICE_ARN = "`aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE arn.+ | grep -i ${serviceName}`"
-                    }
-
-                    sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${SERVICE_ARN}"
-                }
-            }
-        }
+      }
     }
 
-    post {
-        always {
-            sh "mvn clean"
-            sh "docker system prune -f"
+    stage("Build Docker Image") {
+      environment {
+        COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
+        ECR_REPOSITORY = "dw-${serviceName}-microservice"
+      }
+
+      steps {
+        script {
+          taggedImageLatest = "${ECR_URL}/${ECR_REPOSITORY}"
+          taggedImageCommitHash = "${ECR_URL}/${ECR_REPOSITORY}:${COMMIT_HASH}"
         }
+
+        sh "docker build -t ${taggedImageLatest} ."
+        sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
+      }
     }
+
+    stage("Push Image") {
+      steps {
+        withCredentials([
+          [
+            $class: "AmazonWebServicesCredentialsBinding",
+            credentialsId: "Jenkins-AWS-Credentials",
+            accessKeyVariable: "AWS_ACCESS_KEY_ID",
+            secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
+          ]
+        ]) {
+          sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_URL}"
+          sh "docker push ${taggedImageCommitHash}"
+          sh "docker push ${taggedImageLatest}"
+        }
+      }
+    }
+
+    stage("Deploy ECS Cluster") {
+      steps {
+        withCredentials([
+          [
+            $class: "AmazonWebServicesCredentialsBinding",
+            credentialsId: "Jenkins-AWS-Credentials",
+            accessKeyVariable: "AWS_ACCESS_KEY_ID",
+            secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
+          ]
+        ]) {
+          sh "aws configure set default.region ${ECS_REGION}"
+
+          script {
+            // Scans the output of aws ecs list-services for the arns of the services in the cluster
+            // After it selects the service specified by the getServiceName
+            env.SERVICE_ARN = "`aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE arn.+ | grep -i ${serviceName}`"
+          }
+
+          sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${SERVICE_ARN}"
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh "mvn clean"
+      sh "docker system prune -f"
+    }
+  }
 }
