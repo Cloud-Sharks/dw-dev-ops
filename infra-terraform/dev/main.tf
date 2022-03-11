@@ -43,3 +43,8 @@ module "s3" {
   environment = var.environment
   tags        = local.global_tags
 }
+
+module "secrets" {
+  source  = "../_modules/secrets"
+  secrets = var.secrets
+}

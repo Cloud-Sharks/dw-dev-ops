@@ -58,3 +58,11 @@ variable "bucket_name" {
   type        = string
   description = "Name of the S3 bucket"
 }
+
+################################################################################
+# S3
+################################################################################
+variable "secrets" {
+  type        = list(string)
+  description = "Keys of the secrets to create"
+}
