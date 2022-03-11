@@ -7,7 +7,7 @@ def taggedImageCommitHash = ""
 // It should return bank, underwriter, user or transaction
 def getServiceName(gitRepositoryUrl) {
   def acceptable = ["bank", "underwriter", "user", "transaction"]
-  def serviceName = (gitRepositoryUrl = ~/^.*aline-(.+?)-microservice.*/)[0][1]
+  def serviceName = (gitRepositoryUrl =~ /^.*aline-(.+?)-microservice.*/)[0][1]
 
   if (acceptable.contains(serviceName) == false) {
     error "Invalid service name"
