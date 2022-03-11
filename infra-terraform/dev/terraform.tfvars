@@ -16,4 +16,4 @@ key_name = "dw-us-east-1"
 
 bucket_name = "dw-infra"
 
-secrets = [ "raw-compose-url" ]
+secrets = [ "dw-infra-secrets" ]
