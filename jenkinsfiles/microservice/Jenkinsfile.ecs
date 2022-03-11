@@ -18,7 +18,7 @@ def getServiceName(gitRepositoryUrl) {
 
 def clusterExists(clusterName) {
   def foundName = sh(script: "aws ecs list-clusters --output text | grep -oE \"/${clusterName}\$\"", , returnStdout: true).trim()
-  return foundName.isWhitespace()
+  return foundName.isAllWhitespace()
 }
 
 def createCluster() {
