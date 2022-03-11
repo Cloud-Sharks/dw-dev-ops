@@ -16,8 +16,6 @@ pipeline {
     string description: "ECR Url. Example 12345678910.dkr.ecr.us-east-1.amazonaws.com", name: "ECR_URL", trim: true
     string description: "ECS Cluster Name", name: "ECS_CLUSTER", trim: true
     string description: "ECS Deployment Region. Example us-east-1", name: "ECS_REGION", trim: true
-    string defaultValue: "http://localhost:9000", description: "Sonarcube URL Example http://localhost:9000", name: "SONARCUBE_URL", trim: true
-    booleanParam defaultValue: true, description: "Run the tests during the build?", name: "RUN_TESTS"
   }
 
   stages {
@@ -34,12 +32,6 @@ pipeline {
     }
 
     stage("Test") {
-      when {
-        expression {
-          params.RUN_TESTS == true
-        }
-      }
-
       steps {
         sh "mvn clean install test"
       }
