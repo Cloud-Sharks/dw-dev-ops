@@ -137,11 +137,13 @@ pipeline {
 
           script {
             if (clusterExists(params.ECS_CLUSTER)) {
+              sh "CLUSTER EXISTS"
               // Scans the output of aws ecs list-services for the arns of the services in the cluster
               // After it selects the service specified by the getServiceName
               env.SERVICE_ARN = "`aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE arn.+ | grep -i ${serviceName}`"
               sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${SERVICE_ARN}"
             } else {
+              sh "CLUSTER DOES NOT EXIST"
               createCluster()
             }
           }
