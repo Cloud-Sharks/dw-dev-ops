@@ -11,7 +11,7 @@ pipeline {
   }
 
   parameters {
-    string description: "Url of the repository. Example: https://github.com/Cloud-Sharks/aline-bank-microservice.git", name: "REPO_URL", trim: true
+    string description: "Url of the repository. Example: https://github.com/Cloud-Sharks/dw-aline-bank-microservice.git", name: "REPO_URL", trim: true
     string description: "Name of the branch to checkout", name: "BRANCH_NAME", trim: true
     string description: "ECR Url. Example 12345678910.dkr.ecr.us-east-1.amazonaws.com", name: "ECR_URL", trim: true
     string description: "ECS Cluster Name", name: "ECS_CLUSTER", trim: true
@@ -160,6 +160,7 @@ def createCluster() {
 def updateService(serviceName) {
     // Scans the output of aws ecs list-services for the arns of the services in the cluster
     // After it selects the service specified by the getServiceName
+    echo serviceName
     def serviceArn = sh(script: "aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE arn:.+ | grep -i ${serviceName}", , returnStdout: true).trim()
     sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${serviceArn}"
 }
