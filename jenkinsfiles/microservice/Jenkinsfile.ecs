@@ -135,18 +135,8 @@ def getServiceName(gitRepositoryUrl) {
 }
 
 def clusterExists(clusterName) {
-  withCredentials([
-    [
-      $class: "AmazonWebServicesCredentialsBinding",
-      credentialsId: "Jenkins-AWS-Credentials",
-      accessKeyVariable: "AWS_ACCESS_KEY_ID",
-      secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
-    ]
-  ]) {
-    def script = "aws ecs list-clusters --output text --region ${ECS_REGION} | grep -oE /${clusterName}\$"
-    def foundName = sh(script: script, , returnStdout: true).trim()
-    return foundName.isAllWhitespace() == false
-  }
+  def foundName = sh(script: "aws ecs list-clusters --output text | grep -oE \"/${clusterName}\$\"", , returnStdout: true).trim()
+  return foundName.isAllWhitespace() == false
 }
 
 def createCluster() {
@@ -158,28 +148,19 @@ def createCluster() {
       secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
     ]
   ]) {
-    echo "Creating cluster..."
+      echo "Creating cluster..."
+      
 
-    def dockerArgs = "--entrypoint= -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_DEFAULT_REGION=${ECS_REGION}"
-    docker.image("amazon/aws-cli:2.4.24").inside(dockerArgs) {
-      container ->
-        // Install docker cli 2.0
-        sh '''
-          DOCKER_CONFIG = $ {
-            DOCKER_CONFIG: -$HOME / .docker
-          }
-          mkdir - p $DOCKER_CONFIG / cli - plugins
-          curl - SL https: //github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
-        '''
-
-        sh "docker compose version"
-    }
+    // docker.image('docker/compose').inside("--entrypoint= -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_DEFAULT_REGION=${ECS_REGION}") {
+    //   container ->
+    //     sh "aws ecs list-clusters"
+    // }
   }
 }
 
 def updateService(serviceName) {
-  // Scans the output of aws ecs list-services for the arns of the services in the cluster
-  // After it selects the service specified by the getServiceName
-  def serviceArn = sh(script: "aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE 'arn:.+' | grep -i ${serviceName}", , returnStdout: true).trim()
-  sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${serviceArn}"
+    // Scans the output of aws ecs list-services for the arns of the services in the cluster
+    // After it selects the service specified by the getServiceName
+    def serviceArn = sh(script: "aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE 'arn:.+' | grep -i ${serviceName}", , returnStdout: true).trim()
+    sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${serviceArn}"
 }
