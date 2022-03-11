@@ -75,7 +75,7 @@ pipeline {
         withCredentials([
           [
             $class: "AmazonWebServicesCredentialsBinding",
-            credentialsId: "Jenkins-AWS-Credentials",
+            credentialsId: "DW-Jenkins-AWS-Credentials",
             accessKeyVariable: "AWS_ACCESS_KEY_ID",
             secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
           ]
@@ -92,7 +92,7 @@ pipeline {
         withCredentials([
           [
             $class: "AmazonWebServicesCredentialsBinding",
-            credentialsId: "Jenkins-AWS-Credentials",
+            credentialsId: "DW-Jenkins-AWS-Credentials",
             accessKeyVariable: "AWS_ACCESS_KEY_ID",
             secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
           ]
@@ -143,7 +143,7 @@ def createCluster() {
   withCredentials([
     [
       $class: "AmazonWebServicesCredentialsBinding",
-      credentialsId: "Jenkins-AWS-Credentials",
+      credentialsId: "DW-Jenkins-AWS-Credentials",
       accessKeyVariable: "AWS_ACCESS_KEY_ID",
       secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
     ]
