@@ -6,6 +6,7 @@ provider "aws" {
 locals {
   global_tags = {
     Environment = var.environment
+    Owner       = var.owner
   }
 }
 
@@ -36,6 +37,8 @@ module "s3" {
 }
 
 module "secrets" {
-  source  = "../_modules/secrets"
-  secrets = var.secrets
+  source      = "../_modules/secrets"
+  secrets     = var.secrets
+  environment = var.environment
+  tags        = local.global_tags
 }

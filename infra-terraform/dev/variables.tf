@@ -3,6 +3,11 @@ variable "environment" {
   description = "Deployment Environment"
 }
 
+variable "owner" {
+  type        = string
+  description = "Owner of the project"
+}
+
 ################################################################################
 # VPC
 ################################################################################

@@ -17,3 +17,5 @@ key_name = "dw-us-east-1"
 bucket_name = "dw-infra"
 
 secrets = [ "dw-infra-secrets" ]
+
+owner = "David"
