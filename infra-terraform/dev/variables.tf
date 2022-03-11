@@ -1,11 +1,6 @@
 variable "environment" {
   type        = string
   description = "Deployment Environment"
-
-  validation {
-    condition     = can(regex("^(production|staging|development)$", var.environment))
-    error_message = "Invalid environment provided. Must be 'production', 'staging' or 'development'."
-  }
 }
 
 ################################################################################
