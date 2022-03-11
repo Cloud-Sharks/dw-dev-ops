@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "bucket" {
-  bucket = "${var.bucket_name}-${var.environment}"
+  bucket_prefix = "${var.bucket_name}-${var.environment}"
 
   tags = merge({ Name = var.bucket_name }, var.tags)
 

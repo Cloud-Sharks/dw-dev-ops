@@ -2,6 +2,10 @@
 
 ECS deployment of the Aline Financial Application
 
+# Setup
+
+use `make login` to login into the registry using aws cli configuration and env variables
+
 ## Deployment
 
 - Change directory to root directory of this readme
