@@ -45,10 +45,18 @@ pipeline {
       }
     }
 
-    stage("Code Quality Check (Sonarcube)") {
+    stage("SonarQube Code Analysis") {
       steps {
-        withCredentials([string(credentialsId: 'SonarcubeToken', variable: 'SONARCUBE_TOKEN')]) {
-          sh "mvn verify sonar:sonar -Dmaven.test.skip=true -Dsonar.host.url=${SONARCUBE_URL} -Dsonar.login=${SONARCUBE_TOKEN}"
+        withSonarQubeEnv("dw-sonarqube") {
+          sh "mvn verify sonar:sonar -Dmaven.test.skip=true"
+        }
+      }
+    }
+
+    stage("Quality Gate") {
+      steps {
+        timeout(time: 5, unit: "MINUTES") {
+          waitForQualityGate abortPipeline: true
         }
       }
     }
@@ -148,8 +156,7 @@ def createCluster() {
       secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
     ]
   ]) {
-      echo "Creating cluster..."
-      
+    echo "Creating cluster..."
 
     // docker.image('docker/compose').inside("--entrypoint= -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_DEFAULT_REGION=${ECS_REGION}") {
     //   container ->
@@ -159,8 +166,8 @@ def createCluster() {
 }
 
 def updateService(serviceName) {
-    // Scans the output of aws ecs list-services for the arns of the services in the cluster
-    // After it selects the service specified by the getServiceName
-    def serviceArn = sh(script: "aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE 'arn:.+' | grep -i ${serviceName}", , returnStdout: true).trim()
-    sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${serviceArn}"
+  // Scans the output of aws ecs list-services for the arns of the services in the cluster
+  // After it selects the service specified by the getServiceName
+  def serviceArn = sh(script: "aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE 'arn:.+' | grep -i ${serviceName}", , returnStdout: true).trim()
+  sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${serviceArn}"
 }
