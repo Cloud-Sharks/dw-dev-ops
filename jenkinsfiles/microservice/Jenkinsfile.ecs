@@ -140,8 +140,6 @@ def clusterExists(clusterName) {
 }
 
 def createCluster() {
-  echo "Creating cluster... Not really."
-
   withCredentials([
     [
       $class: "AmazonWebServicesCredentialsBinding",
@@ -150,10 +148,13 @@ def createCluster() {
       secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
     ]
   ]) {
-    docker.image('amazon/aws-cli:2.4.24').inside("--entrypoint= -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_DEFAULT_REGION=${ECS_REGION}") {
-      container ->
-        sh "aws ecs list-clusters"
-    }
+      echo "Creating cluster..."
+      
+
+    // docker.image('docker/compose').inside("--entrypoint= -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_DEFAULT_REGION=${ECS_REGION}") {
+    //   container ->
+    //     sh "aws ecs list-clusters"
+    // }
   }
 }
 
