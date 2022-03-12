@@ -1,5 +1,5 @@
 resource "aws_secretsmanager_secret" "secret" {
-  name_prefix             = var.secret_key
+  name_prefix             = "${var.secret_key}-"
   recovery_window_in_days = 7
   tags                    = var.tags
 }
