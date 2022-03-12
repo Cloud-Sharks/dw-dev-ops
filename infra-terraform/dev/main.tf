@@ -38,7 +38,8 @@ module "s3" {
 
 module "secrets" {
   source      = "../_modules/secrets"
-  secrets     = var.secrets
+  secret_key  = var.secret_key
+  secret_json = var.secret_json
   environment = var.environment
   tags        = local.global_tags
 }
