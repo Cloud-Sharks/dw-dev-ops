@@ -9,6 +9,7 @@ Base infrastructure to deploy the Aline Financial application
 # Setup
 
 - Run `terraform init` to install modules
+- Copy [secret.json.example](assets/secret.json.example) into a file called `secret.json` and fill out the values
 
 # Deployment
 

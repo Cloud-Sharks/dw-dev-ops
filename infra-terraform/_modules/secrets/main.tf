@@ -1,5 +1,10 @@
 resource "aws_secretsmanager_secret" "secret" {
-  for_each = toset(var.secrets)
-  name     = "${each.key}-${var.environment}"
-  tags     = var.tags
+  name_prefix             = "${var.secret_key}-"
+  recovery_window_in_days = 7
+  tags                    = var.tags
+}
+
+resource "aws_secretsmanager_secret_version" "secret" {
+  secret_id     = aws_secretsmanager_secret.secret.id
+  secret_string = file(var.secret_json)
 }

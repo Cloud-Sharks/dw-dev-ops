@@ -1,5 +1,7 @@
 environment = "dev"
 
+owner = "David"
+
 region = "us-east-1"
 
 vpc_name = "dw-infra"
@@ -14,6 +16,6 @@ azs = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
 bucket_name = "dw-infra"
 
-secrets = [ "dw-infra-secrets" ]
+secret_key = "dw-infra-secret"
 
-owner = "David"
+secret_json = "../assets/secret.json"

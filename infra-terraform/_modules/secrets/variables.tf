@@ -8,7 +8,12 @@ variable "tags" {
   default = {}
 }
 
-variable "secrets" {
-  type        = list(string)
-  description = "Secrets to generate"
+variable "secret_key" {
+  type        = string
+  description = "Secret key"
+}
+
+variable "secret_json" {
+  type        = string
+  description = "Path to the json secret to store"
 }

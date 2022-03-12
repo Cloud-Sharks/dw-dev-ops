@@ -124,19 +124,17 @@ pipeline {
 // Extracts the service name from the git url
 // It should return bank, underwriter, user or transaction
 def getServiceName(gitRepositoryUrl) {
-  def acceptable = ["bank", "underwriter", "user", "transaction"]
   def serviceName = (gitRepositoryUrl =~ /^.*aline-(.+?)-microservice.*/)[0][1]
-
-  if (acceptable.contains(serviceName) == false) {
-    error "Invalid service name"
-  }
+  checkServiceName(serviceName)
 
   return serviceName
 }
 
 def clusterExists(clusterName) {
-  def foundName = sh(script: "aws ecs list-clusters --output text | grep -oE \"/${clusterName}\$\"", , returnStdout: true).trim()
-  return foundName.isAllWhitespace() == false
+  // def clusterMatch = sh(script: "aws ecs list-clusters --output table | grep -oE \"\\b${clusterName}\\b\"", returnStdout: true).trim()
+  def clusterMatch = bash("aws ecs list-clusters --output table | grep -oE '\\b${clusterName}\\b'").trim()
+
+  return clusterMatch != null
 }
 
 def createCluster() {
@@ -158,8 +156,22 @@ def createCluster() {
 }
 
 def updateService(serviceName) {
+  checkServiceName(serviceName)
   // Scans the output of aws ecs list-services for the arns of the services in the cluster
   // After it selects the service specified by the getServiceName
-  def serviceArn = sh(script: "aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE 'arn:.+' | grep -i ${serviceName}", , returnStdout: true).trim()
+  def serviceArn = bash("aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE \"arn:.+\" | grep -i ${serviceName}").trim()
   sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${serviceArn}"
+}
+
+// Pipes act weird in jenkins so use bash script to make sure it completes properly
+def bash(script) {
+  return sh(script: "/bin/bash -c \"${script}\"", returnStdout: true)
+}
+
+def checkServiceName(serviceName) {
+  def acceptable = ["bank", "underwriter", "user", "transaction"]
+
+  if (acceptable.contains(serviceName) == false) {
+    error "Invalid service name: '${serviceName}'"
+  }
 }

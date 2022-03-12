@@ -53,7 +53,12 @@ variable "bucket_name" {
 ################################################################################
 # Secrets
 ################################################################################
-variable "secrets" {
-  type        = list(string)
-  description = "Keys of the secrets to create"
+variable "secret_key" {
+  type        = string
+  description = "Key of the secret to create"
+}
+
+variable "secret_json" {
+  type        = string
+  description = "Path to the json secret to store"
 }
