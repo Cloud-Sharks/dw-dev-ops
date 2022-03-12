@@ -131,7 +131,6 @@ def getServiceName(gitRepositoryUrl) {
 }
 
 def clusterExists(clusterName) {
-  // def clusterMatch = sh(script: "aws ecs list-clusters --output table | grep -oE \"\\b${clusterName}\\b\"", returnStdout: true).trim()
   def clusterMatch = bash("aws ecs list-clusters --output table | grep -oE '\\b${clusterName}\\b'").trim()
 
   return clusterMatch != null
@@ -147,11 +146,6 @@ def createCluster() {
     ]
   ]) {
     echo "Creating cluster..."
-
-    // docker.image('docker/compose').inside("--entrypoint= -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_DEFAULT_REGION=${ECS_REGION}") {
-    //   container ->
-    //     sh "aws ecs list-clusters"
-    // }
   }
 }
 
