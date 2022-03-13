@@ -50,6 +50,14 @@ variable "bucket_name" {
   description = "Name of the S3 bucket"
 }
 
+variable "file_objects" {
+  type = list(object({
+    key  = string
+    path = string
+  }))
+  description = "Key is the key that is used by S3 and path is file path to store under that key"
+}
+
 ################################################################################
 # Secrets
 ################################################################################

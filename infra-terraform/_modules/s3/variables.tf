@@ -12,3 +12,10 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "file_objects" {
+  type = list(object({
+    key  = string
+    path = string
+  }))
+}
