@@ -21,4 +21,5 @@ resource "aws_s3_object" "file_objects" {
   key    = each.value.key
   source = each.value.path
   tags   = var.tags
+  etag   = filemd5(each.value.path)
 }
