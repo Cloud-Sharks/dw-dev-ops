@@ -18,4 +18,4 @@ bucket_name = "dw-infra"
 
 secret_key = "dw-infra-secret"
 
-secret_json = "../assets/secret.json"
+secret_json = "../assets/secret/secret.json"

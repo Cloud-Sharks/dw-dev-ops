@@ -8,8 +8,16 @@ Base infrastructure to deploy the Aline Financial application
 
 # Setup
 
+## Install
+
 - Run `terraform init` to install modules
-- Copy [secret.json.example](assets/secret.json.example) into a file called `secret.json` and fill out the values
+
+## Configure
+
+- Go into [assets/secret](assets/secret)
+- Make a copy of every file that ends with `.example`, but omit `.example`.
+  - Example: `.ecs.env.example` becomes `.ecs.env`
+- Fill out the blanks with the appropiate values
 
 # Deployment
 

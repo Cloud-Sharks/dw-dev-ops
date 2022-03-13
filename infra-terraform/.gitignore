@@ -1,2 +1,3 @@
 .terraform/
-**/secret.json
+/assets/secret/*
+!/assets/secret/*.example
