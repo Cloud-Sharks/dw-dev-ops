@@ -1,0 +1,186 @@
+// Leave blank
+def taggedImageLatest = ''
+def taggedImageCommitHash = ''
+def serviceName = ''
+
+pipeline {
+  agent any
+
+  tools {
+    maven 'Maven 3.8.4'
+  }
+
+  stages {
+    stage('Clone') {
+      steps {
+        checkout scm
+        script {
+          serviceName = getServiceName(env.GIT_URL)
+        }
+      }
+    }
+
+    stage('Test') {
+      steps {
+        sh 'mvn clean install test'
+      }
+    }
+
+    stage('SonarQube Code Analysis') {
+      steps {
+        withSonarQubeEnv('dw-sonarqube') {
+          sh 'mvn verify sonar:sonar -Dmaven.test.skip=true'
+        }
+      }
+    }
+
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+
+    stage('Package Maven Project') {
+      steps {
+        sh 'mvn package -Dmaven.test.skip=true'
+      }
+    }
+
+    stage('Build Docker Image') {
+      environment {
+        COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
+      }
+
+      steps {
+        script {
+          def ecrRepository = "dw-${serviceName}-microservice"
+          def ecrUrl = getAwsConfig()['ecrUrl']
+
+          taggedImageLatest = "${ecrUrl}/${ecrRepository}"
+          taggedImageCommitHash = "${ecrUrl}/${ecrRepository}:${COMMIT_HASH}"
+
+          sh "docker build -t ${taggedImageLatest} ."
+          sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
+        }
+      }
+    }
+
+    stage('Push Image') {
+      steps {
+        withCredentials([
+        [
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'DW-Jenkins-AWS-Credentials',
+          accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+        ]
+      ]) {
+          script {
+            def ecrUrl = getAwsConfig()['ecrUrl']
+            sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ecrUrl}"
+            sh "docker push ${taggedImageCommitHash}"
+            sh "docker push ${taggedImageLatest}"
+          }
+        }
+      }
+    }
+
+    stage('Deploy EKS Service') {
+      steps {
+        script {
+          if (clusterExists(clusterName) == false) {
+            echo 'Cluster does not exist'
+          }
+
+          updateService(serviceName)
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'mvn clean'
+      sh 'docker system prune -f'
+    }
+  }
+}
+
+def getAwsConfig() {
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    def configIdCmd = $/
+    aws secretsmanager list-secrets --output table \
+    | grep Name \
+    | grep -oE "dw-infra-secret-\w+"/$
+
+    def configId = bash(configIdCmd)
+    def configJsonText = bash($/aws secretsmanager get-secret-value --secret-id ${configId}/$)
+    def configJson = readJSON text: configJsonText
+    def secretStringJson = readJSON text: configJson['SecretString']
+
+    return secretStringJson
+  }
+}
+
+// Extracts the service name from the git url
+// It should return bank, underwriter, user or transaction
+def getServiceName(gitRepositoryUrl) {
+  def serviceName = (gitRepositoryUrl =~ /^.*aline-(.+?)-microservice.*/)[0][1]
+  checkServiceName(serviceName)
+
+  return serviceName
+}
+
+def checkServiceName(serviceName) {
+  def acceptable = ['bank', 'underwriter', 'user', 'transaction']
+
+  if (acceptable.contains(serviceName) == false) {
+    error "Invalid service name: '${serviceName}'"
+  }
+}
+
+def clusterExists(clusterName) {
+  throwIfNull(clusterName, 'clusterName')
+
+  try {
+    def cmd = $/
+    aws eks list-clusters --region us-east-2 --output table \
+    | grep -oE '\bdw-eks\b'/$
+
+    clusterMatch = bash(cmd)
+
+    return clusterMatch != null && clusterMatch?.isAllWhitespace() == false
+  }
+  catch (Exception ex) {
+    echo 'Error looking for cluster. Returning false'
+    return false
+  }
+}
+
+def updateService() {
+}
+
+// Pipes act weird in jenkins so use eval to make sure it completes properly
+def bash(script) {
+  throwIfNull(script, 'script')
+
+  try {
+    return sh(script: $/eval ${script}/$, returnStdout: true).trim()
+  }
+  catch (Exception ex) {
+    echo $/Error running ${script}/$
+  }
+}
+
+def throwIfNull(value, name) {
+  if (value == null) {
+    error "${name} is null"
+  }
+}
