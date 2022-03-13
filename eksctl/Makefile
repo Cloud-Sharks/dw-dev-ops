@@ -1,5 +1,5 @@
 include .env
-init: create_cluster create_node_group create_fargate_profile lbInstall
+init: create_cluster create_node_group create_fargate_profile lbInstall upload_kube_config
 lbInit: create_iam_policy
 lbInstall: set_context create_service_account apply_load_balancer
 
@@ -79,3 +79,8 @@ apply_load_balancer:
 		--set clusterName=${clusterName} \
 		--set serviceAccount.create=false \
 		--set serviceAccount.name=${serviceAccountName}
+
+upload_kube_config:
+	BUCKET_NAME=`aws s3 ls | grep -oE '\b${s3BucketPrefix}.*\b'` && \
+	kubectl config view --minify > kubeconfig.yml && \
+	aws s3 cp kubeconfig.yml s3://$$BUCKET_NAME/kubeconfig.yml
