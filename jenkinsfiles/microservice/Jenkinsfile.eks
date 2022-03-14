@@ -76,7 +76,8 @@ pipeline {
           accessKeyVariable: 'AWS_ACCESS_KEY_ID',
           secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
         ]
-      ]) {
+      ])
+        {
           script {
             def ecrUrl = getAwsConfig()['ecrUrl']
             sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ecrUrl}"
