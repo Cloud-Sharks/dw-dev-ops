@@ -18,7 +18,7 @@ bucket_name = "dw-infra"
 
 file_objects = [{
     key = ".ecs.env",
-    path = "../assets/secret/.ecsctl.env"
+    path = "../assets/secret/.ecs.env"
 }, {
     key = ".eks.env",
     path = "../assets/secret/.eksctl.env"
