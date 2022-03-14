@@ -30,10 +30,6 @@ spec:
           env:
             - name: APP_PORT
               value: {{ required ".Values.ports.exposedPort" .Values.ports.exposedPort | quote }}
-          envFrom:
-            - configMapRef:
-                name: eks-config
-                optional: false
 ---
 apiVersion: v1
 kind: Service
