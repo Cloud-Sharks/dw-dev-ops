@@ -157,11 +157,13 @@ def clusterExists(clusterName) {
   throwIfNull(clusterName, 'clusterName')
 
   try {
+    def region = getAwsConfig()['region']
+
     def cmd = $/
-    aws eks list-clusters --region us-east-2 --output table \
+    aws eks list-clusters --region ${region} --output table \
     | grep -oE '\${clusterName}\b'/$
 
-    clusterMatch = bash(cmd)
+    def clusterMatch = bash(cmd)
 
     return clusterMatch != null && clusterMatch?.isAllWhitespace() == false
   }
@@ -183,7 +185,7 @@ def updateService(serviceName) {
     def config = getAwsConfig()
     def devopsDir = 'devops'
     def repoUrl = config['devopsRepoUrl']
-    def kubernetesPath = config['kubernetesPath']
+    def kubernetesPath = config['kubernetesEksPath']
     def clusterName = config['kubernetesClusterName']
     def region = config['region']
 
@@ -191,18 +193,19 @@ def updateService(serviceName) {
     sh "rm -rf ${devopsDir} && git clone -b eks-deployment ${repoUrl} ${devopsDir}"
 
     dir("${devopsDir}/${kubernetesPath}") {
+      try { sh 'rm ~/.kube/config' } catch (Exception ex) { }
       def clusterContextCmd = $/
       aws eks --region ${region} update-kubeconfig --name ${clusterName} \
       | grep -oP '\barn.+?cluster/.+?\b'/$
 
-      def clusterContext = bash(clusterContextCmd)
-      sh "kubectl config use-context ${clusterContext}"
+      bash(clusterContextCmd)
+      sh 'chmod 700 ~/.kube/config'
 
       try {
-        sh "make update ${serviceName}"
+        sh "make upgrade_${serviceName}"
       }
       catch (Exception ex) {
-        sh "make install ${serviceName}"
+        sh "make install_${serviceName}"
       }
     }
   }
@@ -248,12 +251,7 @@ def getBucketName(bucketPrefix) {
 def bash(script) {
   throwIfNull(script, 'script')
 
-  try {
-    return sh(script: $/eval ${script}/$, returnStdout: true).trim()
-  }
-  catch (Exception ex) {
-    echo $/Error running ${script}/$
-  }
+  return sh(script: $/eval ${script}/$, returnStdout: true).trim()
 }
 
 def throwIfNull(value, name) {
