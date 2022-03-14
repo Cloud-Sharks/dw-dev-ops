@@ -91,7 +91,7 @@ pipeline {
       }
     }
 
-    stage('Deploy EKS Service') {
+    stage('Deploy EKS Cluster') {
       steps {
         script {
           def clusterName = getAwsConfig()['kubernetesClusterName']
