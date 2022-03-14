@@ -16,6 +16,7 @@ pipeline {
         checkout scm
         script {
           serviceName = getServiceName(env.GIT_URL)
+          updateService(serviceName)
         }
       }
     }
@@ -91,8 +92,11 @@ pipeline {
     stage('Deploy EKS Service') {
       steps {
         script {
+          def clusterName = getAwsConfig()['kubernetesClusterName']
+
           if (clusterExists(clusterName) == false) {
-            echo 'Cluster does not exist'
+            createCluster(clusterName)
+            return
           }
 
           updateService(serviceName)
@@ -153,7 +157,7 @@ def clusterExists(clusterName) {
   try {
     def cmd = $/
     aws eks list-clusters --region us-east-2 --output table \
-    | grep -oE '\bdw-eks\b'/$
+    | grep -oE '\${clusterName}\b'/$
 
     clusterMatch = bash(cmd)
 
@@ -165,7 +169,77 @@ def clusterExists(clusterName) {
   }
 }
 
-def updateService() {
+def updateService(serviceName) {
+  throwIfNull(serviceName, 'serviceName')
+
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    def config = getAwsConfig()
+    def devopsDir = 'devops'
+    def repoUrl = config['devopsRepoUrl']
+    def kubernetesPath = config['kubernetesPath']
+    def clusterName = config['kubernetesClusterName']
+    def region = config['region']
+
+    // TODO Remove branch
+    sh "rm -rf ${devopsDir} && git clone -b eks-deployment ${repoUrl} ${devopsDir}"
+
+    dir("${devopsDir}/${kubernetesPath}") {
+      def clusterContextCmd = $/
+      aws eks --region ${region} update-kubeconfig --name ${clusterName} \
+      | grep -oP '\barn.+?cluster/.+?\b'/$
+
+      def clusterContext = bash(clusterContextCmd)
+      sh "kubectl config use-context ${clusterContext}"
+
+      try {
+        sh "make update ${serviceName}"
+      }
+      catch (Exception ex) {
+        sh "make install ${serviceName}"
+      }
+    }
+  }
+}
+
+def createCluster(clusterName) {
+  throwIfNull(clusterName, 'clusterName')
+
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    def config = getAwsConfig()
+    def bucketName = getBucketName(config['bucketPrefix'])
+    def devopsDir = 'devops'
+    def repoUrl = config['devopsRepoUrl']
+    def eksPath = config['eksctlPath']
+    def kubernetesPath = config['kubernetesEksPath']
+
+    // TODO Remove branch
+    sh "rm -rf ${devopsDir} && git clone -b eks-deployment ${repoUrl} ${devopsDir}"
+
+    dir("${devopsDir}/${eksPath}") {
+      sh "aws s3 cp s3://${bucketName}/${eksctlS3EnvPath} .env"
+      try { sh 'make lbInit' } catch (Exception ex) { }
+      sh 'make init'
+    }
+
+    dir("${devopsDir}/${kubernetesPath}") {
+      sh 'kubectl apply -R -f eks-config'
+      sh 'make install'
+    }
+  }
+}
+
+def getBucketName(bucketPrefix) {
+  return bash($/aws s3 ls | grep -oP '\b${s3BucketPrefix}\d+\b'/$)
 }
 
 // Pipes act weird in jenkins so use eval to make sure it completes properly
