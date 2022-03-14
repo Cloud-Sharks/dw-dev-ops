@@ -83,4 +83,5 @@ apply_load_balancer:
 upload_kube_config:
 	BUCKET_NAME=`aws s3 ls | grep -oE '\b${s3BucketPrefix}.*\b'` && \
 	kubectl config view --minify > kubeconfig.yml && \
-	aws s3 cp kubeconfig.yml s3://$$BUCKET_NAME/kubeconfig.yml
+	aws s3 cp kubeconfig.yml s3://$$BUCKET_NAME/kubeconfig.yml && \
+	rm kubeconfig.yml
