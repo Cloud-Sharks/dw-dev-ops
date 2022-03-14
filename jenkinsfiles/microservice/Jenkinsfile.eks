@@ -83,7 +83,7 @@ pipeline {
             def config = getAwsConfig()
             def ecrUrl = config['ecrUrl']
             def eksRegion = config['region']
-            sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ecrUrl}"
+            sh "aws ecr get-login-password --region ${eksRegion}| docker login --username AWS --password-stdin ${ecrUrl}"
             sh "docker push ${taggedImageCommitHash}"
             sh "docker push ${taggedImageLatest}"
           }
