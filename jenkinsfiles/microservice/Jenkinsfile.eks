@@ -96,12 +96,12 @@ pipeline {
         script {
           def clusterName = getAwsConfig()['kubernetesClusterName']
 
-          if (clusterExists(clusterName) == false) {
-            createCluster(clusterName)
+          if (clusterExists(clusterName)) {
+            updateService(serviceName)
             return
           }
 
-          updateService(serviceName)
+          createCluster(clusterName)
         }
       }
     }
