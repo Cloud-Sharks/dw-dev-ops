@@ -119,13 +119,7 @@ def getAwsConfig() {
     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
   {
-    def configIdCmd = $/
-    aws secretsmanager list-secrets --output table \
-    | grep Name \
-    | grep -oE "dw-infra-secret-\w+"/$
-
-    def configId = bash(configIdCmd)
-    def configJsonText = bash($/aws secretsmanager get-secret-value --secret-id ${configId}/$)
+    def configJsonText = bash($/aws secretsmanager get-secret-value --secret-id dw-infra-secret/$)
     def configJson = readJSON text: configJsonText
     def secretStringJson = readJSON text: configJson['SecretString']
 
@@ -183,28 +177,26 @@ def updateService(serviceName) {
     def devopsDir = 'devops'
     def repoUrl = config['devopsRepoUrl']
     def kubernetesPath = config['kubernetesEksPath']
-    def clusterName = config['kubernetesClusterName']
-    def region = config['region']
 
     // TODO Remove branch
-    sh "rm -rf ${devopsDir} && git clone -b eks-deployment ${repoUrl} ${devopsDir}"
+    sh "rm -rf ${devopsDir} 2> /dev/null; git clone -b eks-deployment ${repoUrl} ${devopsDir}"
 
     dir("${devopsDir}/${kubernetesPath}") {
-      // TODO Look into piping result into /dev/null
-      try { sh 'rm ~/.kube/config' } catch (Exception ex) { }
+      def clusterName = config['kubernetesClusterName']
+      def region = config['region']
       def clusterContextCmd = $/
       aws eks --region ${region} update-kubeconfig --name ${clusterName} \
       | grep -oP '\barn.+?cluster/.+?\b'/$
 
+      sh 'rm ~/.kube/config 2> /dev/null'
       bash(clusterContextCmd)
       sh 'chmod 700 ~/.kube/config'
 
-      try {
-        sh "make upgrade_${serviceName}"
-      }
-      catch (Exception ex) {
-        sh "make install_${serviceName}"
-      }
+      def bucketName = getBucketName(config['s3BucketPrefix'])
+      def eksctlEnvPath = config['s3eksctlEnvPath']
+
+      sh "aws s3 cp s3://${bucketName}/${eksctlEnvPath} .env"
+      sh "make upgrade_${serviceName} || make install_${serviceName}"
     }
   }
 }
@@ -219,22 +211,26 @@ def createCluster(clusterName) {
     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
   {
     def config = getAwsConfig()
-    def bucketName = getBucketName(config['bucketPrefix'])
+    def bucketName = getBucketName(config['s3BucketPrefix'])
     def devopsDir = 'devops'
     def repoUrl = config['devopsRepoUrl']
-    def eksPath = config['eksctlPath']
     def kubernetesPath = config['kubernetesEksPath']
 
     // TODO Remove branch
-    sh "rm -rf ${devopsDir} && git clone -b eks-deployment ${repoUrl} ${devopsDir}"
+    sh "rm -rf ${devopsDir}; git clone -b eks-deployment ${repoUrl} ${devopsDir}"
 
-    dir("${devopsDir}/${eksPath}") {
-      sh "aws s3 cp s3://${bucketName}/${eksctlS3EnvPath} .env"
-      try { sh 'make lbInit' } catch (Exception ex) { }
+    dir("${devopsDir}/${eksctlEnvPath}") {
+      def eksctlEnvPath = config['s3eksctlEnvPath']
+
+      sh 'make createPolicies 2> /dev/null'
+      sh "aws s3 cp s3://${bucketName}/${eksctlEnvPath} .env"
       sh 'make init'
     }
 
     dir("${devopsDir}/${kubernetesPath}") {
+      def microserviceEnvPath = config['s3eksctlEnvPath']
+
+      sh "aws s3 cp s3://${bucketName}/${microserviceEnvPath} .env"
       sh 'kubectl apply -R -f eks-config'
       sh 'make install'
     }
@@ -242,7 +238,7 @@ def createCluster(clusterName) {
 }
 
 def getBucketName(bucketPrefix) {
-  return bash($/aws s3 ls | grep -oP '\b${s3BucketPrefix}\d+\b'/$)
+  return bash($/aws s3 ls | grep -oP '\b${bucketPrefix}.+?\b'/$)
 }
 
 // Pipes act weird in jenkins so use eval to make sure it completes properly
