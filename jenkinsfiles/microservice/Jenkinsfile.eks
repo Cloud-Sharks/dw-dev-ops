@@ -98,7 +98,7 @@ pipeline {
             return
           }
 
-          createCluster(clusterName)
+          createCluster()
         }
       }
     }
@@ -192,18 +192,16 @@ def updateService(serviceName) {
       bash(clusterContextCmd)
       sh 'chmod 700 ~/.kube/config'
 
-      def bucketName = getBucketName(config['s3BucketPrefix'])
-      def eksctlEnvPath = config['s3eksctlEnvPath']
+      env.MICROSERVICE_ENV = config['s3microserviceEnvPath']
+      env.BUCKET_NAME = getBucketName(config['s3BucketPrefix'])
 
-      sh "aws s3 cp s3://${bucketName}/${eksctlEnvPath} .env"
+      sh('aws s3api get-object --bucket $BUCKET_NAME --key $MICROSERVICE_ENV .env')
       sh "make upgrade_${serviceName} || make install_${serviceName}"
     }
   }
 }
 
-def createCluster(clusterName) {
-  throwIfNull(clusterName, 'clusterName')
-
+def createCluster() {
   withCredentials([[
     $class: 'AmazonWebServicesCredentialsBinding',
     credentialsId: 'DW-Jenkins-AWS-Credentials',
@@ -230,7 +228,7 @@ def createCluster(clusterName) {
     dir("${devopsDir}/${kubernetesPath}") {
       def microserviceEnvPath = config['s3eksctlEnvPath']
 
-      sh "aws s3 cp s3://${bucketName}/${microserviceEnvPath} .env"
+      sh "aws s3 cp 's3://${bucketName}/${microserviceEnvPath}' .env"
       sh 'kubectl apply -R -f eks-config'
       sh 'make install'
     }
