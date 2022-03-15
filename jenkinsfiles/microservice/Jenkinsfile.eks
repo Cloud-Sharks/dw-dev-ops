@@ -16,6 +16,7 @@ pipeline {
         checkout scm
         script {
           serviceName = getServiceName(env.GIT_URL)
+          createCluster()
           updateService(serviceName)
         }
       }
@@ -57,7 +58,7 @@ pipeline {
       steps {
         script {
           def ecrRepository = "dw-${serviceName}-microservice"
-          def ecrUrl = getAwsConfig()['ecrUrl']
+          def ecrUrl = getAwsConfig()['ecrRepositoryUrl']
 
           taggedImageLatest = "${ecrUrl}/${ecrRepository}"
           taggedImageCommitHash = "${ecrUrl}/${ecrRepository}:${COMMIT_HASH}"
@@ -78,7 +79,7 @@ pipeline {
         {
           script {
             def config = getAwsConfig()
-            def ecrUrl = config['ecrUrl']
+            def ecrUrl = config['ecrRepositoryUrl']
             def eksRegion = config['region']
             sh "aws ecr get-login-password --region ${eksRegion}| docker login --username AWS --password-stdin ${ecrUrl}"
             sh "docker push ${taggedImageCommitHash}"
@@ -179,7 +180,7 @@ def updateService(serviceName) {
     def kubernetesPath = config['kubernetesEksPath']
 
     // TODO Remove branch
-    sh "rm -rf ${devopsDir} 2> /dev/null; git clone -b eks-deployment ${repoUrl} ${devopsDir}"
+    sh "rm -rf ${devopsDir}; git clone -b eks-deployment ${repoUrl} ${devopsDir}"
 
     dir("${devopsDir}/${kubernetesPath}") {
       def clusterName = config['kubernetesClusterName']
@@ -188,16 +189,18 @@ def updateService(serviceName) {
       aws eks --region ${region} update-kubeconfig --name ${clusterName} \
       | grep -oP '\barn.+?cluster/.+?\b'/$
 
-      sh 'rm ~/.kube/config 2> /dev/null'
+      try { sh 'rm ~/.kube/config 2> /dev/null' } catch (err) { }
       bash(clusterContextCmd)
       sh 'chmod 700 ~/.kube/config'
 
-      env.MICROSERVICE_ENV = config['s3microserviceEnvPath']
-      env.BUCKET_NAME = getBucketName(config['s3BucketPrefix'])
+      def microserviceEnv = config['s3microserviceEnvPath']
+      def bucketName = getBucketName(config['s3BucketPrefix'])
 
-      sh('aws s3api get-object --bucket $BUCKET_NAME --key $MICROSERVICE_ENV .env')
+      sh("aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env")
       sh "make upgrade_${serviceName} || make install_${serviceName}"
     }
+
+    sh "rm -rf ${devopsDir}"
   }
 }
 
@@ -209,29 +212,33 @@ def createCluster() {
     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
   {
     def config = getAwsConfig()
-    def bucketName = getBucketName(config['s3BucketPrefix'])
     def devopsDir = 'devops'
     def repoUrl = config['devopsRepoUrl']
-    def kubernetesPath = config['kubernetesEksPath']
+    def eksCtlPath = config['eksctlPath']
 
     // TODO Remove branch
     sh "rm -rf ${devopsDir}; git clone -b eks-deployment ${repoUrl} ${devopsDir}"
 
-    dir("${devopsDir}/${eksctlEnvPath}") {
-      def eksctlEnvPath = config['s3eksctlEnvPath']
+    dir("${devopsDir}/${eksCtlPath}") {
+      def microserviceEnv = config['s3microserviceEnvPath']
+      def bucketName = getBucketName(config['s3BucketPrefix'])
 
-      sh 'make createPolicies 2> /dev/null'
-      sh "aws s3 cp s3://${bucketName}/${eksctlEnvPath} .env"
+      sh "aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env"
       sh 'make init'
     }
 
-    dir("${devopsDir}/${kubernetesPath}") {
-      def microserviceEnvPath = config['s3eksctlEnvPath']
+    def kubernetesPath = config['kubernetesEksPath']
 
-      sh "aws s3 cp 's3://${bucketName}/${microserviceEnvPath}' .env"
+    dir("${devopsDir}/${kubernetesPath}") {
+      def microserviceEnv = config['s3microserviceEnvPath']
+      def bucketName = getBucketName(config['s3BucketPrefix'])
+
+      sh("aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env")
       sh 'kubectl apply -R -f eks-config'
       sh 'make install'
     }
+
+    sh "rm -rf ${devopsDir}"
   }
 }
 
