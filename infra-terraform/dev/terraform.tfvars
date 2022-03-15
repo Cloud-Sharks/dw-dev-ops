@@ -18,10 +18,10 @@ bucket_name = "dw-infra"
 
 file_objects = [{
     key = ".microservice.env",
-    path = "../assets/secret/microservice.env"
+    path = "../assets/secret/.microservice.env"
 }, {
     key = ".eksctl.env",
-    path = "../assets/secret/eksctl.env"
+    path = "../assets/secret/.eksctl.env"
 }]
 
 file_secrets = [{
