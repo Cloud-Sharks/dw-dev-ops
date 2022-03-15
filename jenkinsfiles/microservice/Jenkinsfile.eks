@@ -31,7 +31,7 @@ pipeline {
 
     stage('SonarQube Code Analysis') {
       steps {
-        withSonarQubeEnv('dw-sonarqube') {
+        withSonarQubeEnv('SonarQubeServer') {
           sh 'mvn verify sonar:sonar -Dmaven.test.skip=true'
         }
       }
@@ -96,10 +96,12 @@ pipeline {
           def clusterName = getAwsConfig()['kubernetesClusterName']
 
           if (clusterExists(clusterName)) {
+            echo 'CLUSTER EXISTS'
             updateService(serviceName)
             return
           }
 
+          echo 'CLUSTER DOES NOT EXIST'
           createCluster()
         }
       }
@@ -148,6 +150,7 @@ def checkServiceName(serviceName) {
 
 def clusterExists(clusterName) {
   throwIfNull(clusterName, 'clusterName')
+  echo "${clusterName}"
 
   try {
     def region = getAwsConfig()['region']
@@ -157,6 +160,8 @@ def clusterExists(clusterName) {
     | grep -oE '\${clusterName}\b'/$
 
     def clusterMatch = bash(cmd)
+
+    echo "CLUSTERMACTH ${clusterMatch}"
 
     return clusterMatch != null && clusterMatch?.isAllWhitespace() == false
   }
