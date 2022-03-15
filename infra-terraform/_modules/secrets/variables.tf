@@ -8,12 +8,10 @@ variable "tags" {
   default = {}
 }
 
-variable "secret_key" {
-  type        = string
-  description = "Secret key"
-}
-
-variable "secret_json" {
-  type        = string
-  description = "Path to the json secret to store"
+variable "file_secrets" {
+  type = list(object({
+    key  = string
+    path = string
+  }))
+  description = "Secret key and file path"
 }

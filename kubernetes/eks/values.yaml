@@ -1,6 +1,4 @@
-resources:
-  limits:
-    cpu: "2"
-    memory: "4G"
+namespace: default
 
-namespace: microservice
+aws:
+  ecrRepository: null
