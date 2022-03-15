@@ -61,12 +61,10 @@ variable "file_objects" {
 ################################################################################
 # Secrets
 ################################################################################
-variable "secret_key" {
-  type        = string
-  description = "Key of the secret to create"
-}
-
-variable "secret_json" {
-  type        = string
-  description = "Path to the json secret to store"
+variable "file_secrets" {
+  type = list(object({
+    key  = string
+    path = string
+  }))
+  description = "Secret key and file path"
 }

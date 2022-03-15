@@ -70,14 +70,11 @@ pipeline {
 
     stage('Push Image') {
       steps {
-        withCredentials([
-        [
+        withCredentials([[
           $class: 'AmazonWebServicesCredentialsBinding',
           credentialsId: 'DW-Jenkins-AWS-Credentials',
           accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-        ]
-      ])
+          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
         {
           script {
             def config = getAwsConfig()
@@ -193,6 +190,7 @@ def updateService(serviceName) {
     sh "rm -rf ${devopsDir} && git clone -b eks-deployment ${repoUrl} ${devopsDir}"
 
     dir("${devopsDir}/${kubernetesPath}") {
+      // TODO Look into piping result into /dev/null
       try { sh 'rm ~/.kube/config' } catch (Exception ex) { }
       def clusterContextCmd = $/
       aws eks --region ${region} update-kubeconfig --name ${clusterName} \
