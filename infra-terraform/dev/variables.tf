@@ -1,11 +1,11 @@
 variable "environment" {
   type        = string
   description = "Deployment Environment"
+}
 
-  validation {
-    condition     = can(regex("^(production|staging|development)$", var.environment))
-    error_message = "Invalid environment provided. Must be 'production', 'staging' or 'development'."
-  }
+variable "owner" {
+  type        = string
+  description = "Owner of the project"
 }
 
 ################################################################################
@@ -43,18 +43,25 @@ variable "public_subnets" {
 }
 
 ################################################################################
-# Instances
-################################################################################
-
-variable "key_name" {
-  type        = string
-  description = "Name of key pair to access EC2 instances"
-}
-
-################################################################################
 # S3
 ################################################################################
 variable "bucket_name" {
   type        = string
   description = "Name of the S3 bucket"
+}
+
+variable "s3_files" {
+  type        = list(string)
+  description = "Key is the key that is used by S3 and path is file path to store under that key"
+}
+
+################################################################################
+# Secrets
+################################################################################
+variable "file_secrets" {
+  type = list(object({
+    key  = string
+    path = string
+  }))
+  description = "Secret key and file path"
 }

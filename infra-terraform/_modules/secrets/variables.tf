@@ -1,8 +1,3 @@
-variable "bucket_name" {
-  type        = string
-  description = "Name of the bucket"
-}
-
 variable "environment" {
   type        = string
   description = "Deployment Environment"
@@ -13,6 +8,10 @@ variable "tags" {
   default = {}
 }
 
-variable "file_paths" {
-  type = list(string)
+variable "file_secrets" {
+  type = list(object({
+    key  = string
+    path = string
+  }))
+  description = "Secret key and file path"
 }

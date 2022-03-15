@@ -1,0 +1,177 @@
+// Leave blank
+def serviceName = ""
+def taggedImageLatest = ""
+def taggedImageCommitHash = ""
+
+pipeline {
+  agent any
+
+  tools {
+    maven "Maven 3.8.4"
+  }
+
+  parameters {
+    string description: "Url of the repository. Example: https://github.com/Cloud-Sharks/dw-aline-bank-microservice.git", name: "REPO_URL", trim: true
+    string description: "Name of the branch to checkout", name: "BRANCH_NAME", trim: true
+    string description: "ECR Url. Example 12345678910.dkr.ecr.us-east-1.amazonaws.com", name: "ECR_URL", trim: true
+    string description: "ECS Cluster Name", name: "ECS_CLUSTER", trim: true
+    string description: "ECS Deployment Region. Example us-east-1", name: "ECS_REGION", trim: true
+  }
+
+  stages {
+    stage("Clone") {
+      steps {
+        git branch: "${BRANCH_NAME}", credentialsId: "davidsmoothstack-githubtoken", url: "${REPO_URL}"
+        sh "git submodule init && git submodule update"
+
+        // Set the global service name
+        script {
+          serviceName = getServiceName(params.REPO_URL)
+        }
+      }
+    }
+
+    stage("Test") {
+      steps {
+        sh "mvn clean install test"
+      }
+    }
+
+    stage("SonarQube Code Analysis") {
+      steps {
+        withSonarQubeEnv("dw-sonarqube") {
+          sh "mvn verify sonar:sonar -Dmaven.test.skip=true"
+        }
+      }
+    }
+
+    stage("Quality Gate") {
+      steps {
+        timeout(time: 5, unit: "MINUTES") {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+
+    stage("Build Docker Image") {
+      environment {
+        COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
+        ECR_REPOSITORY = "dw-${serviceName}-microservice"
+      }
+
+      steps {
+        script {
+          taggedImageLatest = "${ECR_URL}/${ECR_REPOSITORY}"
+          taggedImageCommitHash = "${ECR_URL}/${ECR_REPOSITORY}:${COMMIT_HASH}"
+        }
+
+        sh "docker build -t ${taggedImageLatest} ."
+        sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
+      }
+    }
+
+    stage("Push Image") {
+      steps {
+        withCredentials([
+          [
+            $class: "AmazonWebServicesCredentialsBinding",
+            credentialsId: "DW-Jenkins-AWS-Credentials",
+            accessKeyVariable: "AWS_ACCESS_KEY_ID",
+            secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
+          ]
+        ]) {
+          sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_URL}"
+          sh "docker push ${taggedImageCommitHash}"
+          sh "docker push ${taggedImageLatest}"
+        }
+      }
+    }
+
+    stage("Deploy ECS Cluster") {
+      steps {
+        withCredentials([
+          [
+            $class: "AmazonWebServicesCredentialsBinding",
+            credentialsId: "DW-Jenkins-AWS-Credentials",
+            accessKeyVariable: "AWS_ACCESS_KEY_ID",
+            secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
+          ]
+        ]) {
+          sh "aws configure set default.region ${ECS_REGION}"
+
+          script {
+            if (clusterExists(params.ECS_CLUSTER)) {
+              echo "CLUSTER EXISTS"
+              updateService(serviceName)
+            } else {
+              echo "CLUSTER DOES NOT EXIST"
+              createCluster()
+            }
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh "mvn clean"
+      sh "docker system prune -f"
+    }
+  }
+}
+
+// Extracts the service name from the git url
+// It should return bank, underwriter, user or transaction
+def getServiceName(gitRepositoryUrl) {
+  def serviceName = (gitRepositoryUrl =~ /^.*aline-(.+?)-microservice.*/)[0][1]
+  checkServiceName(serviceName)
+
+  return serviceName
+}
+
+def clusterExists(clusterName) {
+  // def clusterMatch = sh(script: "aws ecs list-clusters --output table | grep -oE \"\\b${clusterName}\\b\"", returnStdout: true).trim()
+  def clusterMatch = bash("aws ecs list-clusters --output table | grep -oE '\\b${clusterName}\\b'").trim()
+
+  return clusterMatch != null
+}
+
+def createCluster() {
+  withCredentials([
+    [
+      $class: "AmazonWebServicesCredentialsBinding",
+      credentialsId: "DW-Jenkins-AWS-Credentials",
+      accessKeyVariable: "AWS_ACCESS_KEY_ID",
+      secretKeyVariable: "AWS_SECRET_ACCESS_KEY"
+    ]
+  ]) {
+    echo "Creating cluster..."
+
+    // docker.image('docker/compose').inside("--entrypoint= -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_DEFAULT_REGION=${ECS_REGION}") {
+    //   container ->
+    //     sh "aws ecs list-clusters"
+    // }
+  }
+}
+
+def updateService(serviceName) {
+  checkServiceName(serviceName)
+  // Scans the output of aws ecs list-services for the arns of the services in the cluster
+  // After it selects the service specified by the getServiceName
+  def serviceArn = bash("aws ecs list-services --cluster ${ECS_CLUSTER} --output text | grep -oE \"arn:.+\" | grep -i ${serviceName}").trim()
+  sh "aws ecs update-service --cluster ${ECS_CLUSTER} --force-new-deployment --service ${serviceArn}"
+}
+
+// Pipes act weird in jenkins so use bash script to make sure it completes properly
+def bash(script) {
+  return sh(script: "/bin/bash -c \"${script}\"", returnStdout: true)
+}
+
+def checkServiceName(serviceName) {
+  def acceptable = ["bank", "underwriter", "user", "transaction"]
+
+  if (acceptable.contains(serviceName) == false) {
+    error "Invalid service name: '${serviceName}'"
+  }
+}

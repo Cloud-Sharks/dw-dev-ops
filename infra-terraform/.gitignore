@@ -1,2 +1,3 @@
 .terraform/
-secret.auto.tfvars
+/assets/secret/*
+!/assets/secret/*.example

@@ -1,7 +1,7 @@
 include .env
-init: create_cluster create_node_group create_fargate_profile lbInstall
-lbInit: create_iam_policy
-lbInstall: set_context create_service_account apply_load_balancer
+init: create_cluster create_node_group create_fargate_profile install_ascp lbInstall upload_kube_config
+createPolicies: create_iam_policies
+lbInstall: set_context create_service_accounts apply_load_balancer
 
 create_cluster:
 	eksctl create cluster \
@@ -23,9 +23,10 @@ create_node_group:
 		--name ${publicNgName} \
 		--cluster ${clusterName} \
 		--region ${region} \
-		--node-type t2.small \
+		--node-type t3.small \
+		--nodes 2 \
 		--nodes-min 1 \
-		--nodes-max 2 \
+		--nodes-max 5 \
 		--full-ecr-access \
 		--alb-ingress-access
 
@@ -36,7 +37,7 @@ create_node_group:
 		--region ${region} \
 		--node-type t2.small \
 		--nodes-min 1 \
-		--nodes-max 2 \
+		--nodes-max 5 \
 		--full-ecr-access \
 		--alb-ingress-access
 
@@ -47,23 +48,32 @@ create_fargate_profile:
 		--name ${fargateProfileName} \
 		--namespace ${fargateNamespace}
 
+#TODO: Add repo commands and pipe result into /dev/null
+install_ascp:
+	helm install -n kube-system csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver --set syncSecret.enabled=true
+
 clean:
 	eksctl delete cluster \
 		--name ${clusterName} \
 		--region ${region} \
 		--force
 
-create_iam_policy:
+create_iam_policies:
 	aws iam create-policy \
 		--policy-name ${policyName} \
-		--policy-document file://iam_policy.json
+		--policy-document file://${policyDocument}
 
-create_service_account:
+	aws iam create-policy \
+		--policy-name ${containerSecretPolicyName} \
+		--policy-document file://${containerSecretPolicyDocument}
+
+create_service_accounts:
 	eksctl utils associate-iam-oidc-provider \
 		--region=${region} \
 		--cluster=${clusterName} \
 		--approve
 
+# Load Balancer Service Account
 	eksctl create iamserviceaccount \
 		--cluster=${clusterName} \
 		--region=${region} \
@@ -73,9 +83,25 @@ create_service_account:
 		--override-existing-serviceaccounts \
 		--approve
 
+# Container Secret Service Account
+	eksctl create iamserviceaccount \
+		--cluster=${clusterName} \
+		--region=${region} \
+		--namespace=${containerSecretNamespace} \
+		--name=${containerSecretServiceAccountName} \
+		--attach-policy-arn=arn:aws:iam::${accountId}:policy/${containerSecretPolicyName} \
+		--override-existing-serviceaccounts \
+		--approve
+
+#TODO: Add repo commands and pipe result into /dev/null
 apply_load_balancer:
 	helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
 		-n kube-system \
 		--set clusterName=${clusterName} \
 		--set serviceAccount.create=false \
 		--set serviceAccount.name=${serviceAccountName}
+
+upload_kube_config:
+	BUCKET_NAME=`aws s3 ls | grep -oE '\b${s3BucketPrefix}.*\b'` && \
+	kubectl config view --minify > kubeconfig.yml && \
+	aws s3 cp kubeconfig.yml s3://$$BUCKET_NAME/kubeconfig.yml

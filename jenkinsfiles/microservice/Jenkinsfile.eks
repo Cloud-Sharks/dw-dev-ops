@@ -1,0 +1,276 @@
+// Leave blank
+def taggedImageLatest = ''
+def taggedImageCommitHash = ''
+def serviceName = ''
+
+pipeline {
+  agent any
+
+  tools {
+    maven 'Maven 3.8.4'
+  }
+
+  stages {
+    stage('Clone') {
+      steps {
+        checkout scm
+        sh 'git submodule init'
+        sh 'git submodule update'
+
+        script {
+          serviceName = getServiceName(env.GIT_URL)
+        }
+      }
+    }
+
+    stage('Test') {
+      steps {
+        sh 'mvn clean install test'
+      }
+    }
+
+    stage('SonarQube Code Analysis') {
+      steps {
+        withSonarQubeEnv('SonarQubeServer') {
+          sh 'mvn verify sonar:sonar -Dmaven.test.skip=true'
+        }
+      }
+    }
+
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+
+    stage('Package Maven Project') {
+      steps {
+        sh 'mvn package -Dmaven.test.skip=true'
+      }
+    }
+
+    stage('Build Docker Image') {
+      environment {
+        COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
+      }
+
+      steps {
+        script {
+          def ecrRepository = "dw-${serviceName}-microservice"
+          def ecrUrl = getAwsConfig()['ecrRepositoryUrl']
+
+          taggedImageLatest = "${ecrUrl}/${ecrRepository}"
+          taggedImageCommitHash = "${ecrUrl}/${ecrRepository}:${COMMIT_HASH}"
+
+          sh "docker build -t ${taggedImageLatest} ."
+          sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
+        }
+      }
+    }
+
+    stage('Push Image') {
+      steps {
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'DW-Jenkins-AWS-Credentials',
+          accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+        {
+          script {
+            def config = getAwsConfig()
+            def ecrUrl = config['ecrRepositoryUrl']
+            def eksRegion = config['region']
+
+            sh "aws ecr get-login-password --region ${eksRegion} | docker login --username AWS --password-stdin ${ecrUrl}"
+            sh "docker push ${taggedImageCommitHash}"
+            sh "docker push ${taggedImageLatest}"
+          }
+        }
+      }
+    }
+
+    stage('Deploy EKS Cluster') {
+      steps {
+        script {
+          def clusterName = getAwsConfig()['kubernetesClusterName']
+
+          if (clusterExists(clusterName)) {
+            echo 'CLUSTER EXISTS'
+            updateService(serviceName)
+            return
+          }
+
+          echo 'CLUSTER DOES NOT EXIST'
+          createCluster()
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'mvn clean'
+      sh 'docker system prune -f'
+    }
+  }
+}
+
+def clusterExists(clusterName) {
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    throwIfNull(clusterName, 'clusterName')
+
+    try {
+      def region = getAwsConfig()['region']
+
+      def cmd = $/
+      aws eks list-clusters --region ${region} --output table \
+      | grep -oE '\${clusterName}\b'/$
+
+      def clusterMatch = bash(cmd)
+
+      return clusterMatch != null && clusterMatch?.isAllWhitespace() == false
+    }
+    catch (Exception ex) {
+      echo 'Error looking for cluster. Returning false'
+      return false
+    }
+  }
+}
+
+def updateService(serviceName) {
+  throwIfNull(serviceName, 'serviceName')
+
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    def config = getAwsConfig()
+    def devopsDir = 'devops'
+    def repoUrl = config['devopsRepoUrl']
+    def kubernetesPath = config['kubernetesEksPath']
+
+    sh "rm -rf ${devopsDir}; git clone ${repoUrl} ${devopsDir}"
+
+    dir("${devopsDir}/${kubernetesPath}") {
+      def microserviceEnv = config['s3microserviceEnvPath']
+      def bucketName = getBucketName(config['s3BucketPrefix'])
+
+      updateKubeconfigFile()
+
+      sh("aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env")
+      sh "make upgrade_${serviceName} || make install_${serviceName}"
+    }
+
+    sh "rm -rf ${devopsDir}"
+  }
+}
+
+def createCluster() {
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    def config = getAwsConfig()
+    def devopsDir = 'devops'
+    def repoUrl = config['devopsRepoUrl']
+    def eksCtlPath = config['eksctlPath']
+
+    sh "rm -rf ${devopsDir}; git clone ${repoUrl} ${devopsDir}"
+
+    dir("${devopsDir}/${eksCtlPath}") {
+      def microserviceEnv = config['s3microserviceEnvPath']
+      def bucketName = getBucketName(config['s3BucketPrefix'])
+
+      sh "aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env"
+      sh 'make init'
+    }
+
+    def kubernetesPath = config['kubernetesEksPath']
+
+    dir("${devopsDir}/${kubernetesPath}") {
+      def microserviceEnv = config['s3microserviceEnvPath']
+      def bucketName = getBucketName(config['s3BucketPrefix'])
+
+      updateKubeconfigFile()
+
+      sh("aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env")
+      sh 'kubectl apply -R -f eks-config'
+      sh 'make install'
+    }
+
+    sh "rm -rf ${devopsDir}"
+  }
+}
+
+def getAwsConfig() {
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    def configJsonText = bash($/aws secretsmanager get-secret-value --secret-id dw-infra-secret/$)
+    def configJson = readJSON text: configJsonText
+    def secretStringJson = readJSON text: configJson['SecretString']
+
+    return secretStringJson
+  }
+}
+
+def updateKubeconfigFile() {
+  def config = getAwsConfig()
+  def clusterName = config['kubernetesClusterName']
+  def region = config['region']
+  def clusterContextCmd = $/
+      aws eks --region ${region} update-kubeconfig --name ${clusterName} \
+      | grep -oP '\barn.+?cluster/.+?\b'/$
+
+  try { sh 'rm ~/.kube/config' } catch (err) { }
+  bash(clusterContextCmd)
+  sh 'chmod 700 ~/.kube/config'
+}
+
+def getBucketName(bucketPrefix) {
+  return bash($/aws s3 ls | grep -oP '\b${bucketPrefix}.+?\b'/$)
+}
+
+// Extracts the service name from the git url
+// It should return bank, underwriter, user or transaction
+def getServiceName(gitRepositoryUrl) {
+  def serviceName = (gitRepositoryUrl =~ /^.*aline-(.+?)-microservice.*/)[0][1]
+  checkServiceName(serviceName)
+
+  return serviceName
+}
+
+def checkServiceName(serviceName) {
+  def acceptable = ['bank', 'underwriter', 'user', 'transaction']
+
+  if (acceptable.contains(serviceName) == false) {
+    error "Invalid service name: '${serviceName}'"
+  }
+}
+
+// Pipes act weird in jenkins so use eval to make sure it completes properly
+def bash(script) {
+  throwIfNull(script, 'script')
+
+  return sh(script: $/eval ${script}/$, returnStdout: true).trim()
+}
+
+def throwIfNull(value, name) {
+  if (value == null) {
+    error "${name} is null"
+  }
+}

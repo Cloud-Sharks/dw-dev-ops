@@ -6,6 +6,7 @@ provider "aws" {
 locals {
   global_tags = {
     Environment = var.environment
+    Owner       = var.owner
   }
 }
 
@@ -28,18 +29,17 @@ module "security_groups" {
   tags   = local.global_tags
 }
 
-module "instances" {
-  source             = "../_modules/instances"
-  private_subnet_id  = element(module.vpc.private_subnets_ids, 0)
-  public_subnet_id   = element(module.vpc.public_subnets_ids, 0)
-  security_group_ids = module.security_groups.security_group_ids
-  key_name           = var.key_name
-  tags               = local.global_tags
-}
-
 module "s3" {
   source      = "../_modules/s3"
   bucket_name = var.bucket_name
+  file_paths  = var.s3_files
   environment = var.environment
   tags        = local.global_tags
+}
+
+module "secrets" {
+  source       = "../_modules/secrets"
+  file_secrets = var.file_secrets
+  environment  = var.environment
+  tags         = local.global_tags
 }
