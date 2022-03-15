@@ -10,4 +10,4 @@ ports:
 strategy:
   type: RollingUpdate
 
-replicas: 1
+replicas: 2
