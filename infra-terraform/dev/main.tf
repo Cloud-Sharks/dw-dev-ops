@@ -30,11 +30,11 @@ module "security_groups" {
 }
 
 module "s3" {
-  source       = "../_modules/s3"
-  bucket_name  = var.bucket_name
-  file_objects = var.file_objects
-  environment  = var.environment
-  tags         = local.global_tags
+  source      = "../_modules/s3"
+  bucket_name = var.bucket_name
+  file_paths  = var.s3_files
+  environment = var.environment
+  tags        = local.global_tags
 }
 
 module "secrets" {

@@ -13,9 +13,6 @@ variable "tags" {
   default = {}
 }
 
-variable "file_objects" {
-  type = list(object({
-    key  = string
-    path = string
-  }))
+variable "file_paths" {
+  type = list(string)
 }
