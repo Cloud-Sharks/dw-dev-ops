@@ -14,10 +14,9 @@ pipeline {
     stage('Clone') {
       steps {
         checkout scm
+
         script {
           serviceName = getServiceName(env.GIT_URL)
-          createCluster()
-          updateService(serviceName)
         }
       }
     }
@@ -81,7 +80,7 @@ pipeline {
             def config = getAwsConfig()
             def ecrUrl = config['ecrRepositoryUrl']
             def eksRegion = config['region']
-            sh "aws ecr get-login-password --region ${eksRegion}| docker login --username AWS --password-stdin ${ecrUrl}"
+            sh "aws ecr get-login-password --region ${eksRegion} | docker login --username AWS --password-stdin ${ecrUrl}"
             sh "docker push ${taggedImageCommitHash}"
             sh "docker push ${taggedImageLatest}"
           }
@@ -183,18 +182,10 @@ def updateService(serviceName) {
     sh "rm -rf ${devopsDir}; git clone -b eks-deployment ${repoUrl} ${devopsDir}"
 
     dir("${devopsDir}/${kubernetesPath}") {
-      def clusterName = config['kubernetesClusterName']
-      def region = config['region']
-      def clusterContextCmd = $/
-      aws eks --region ${region} update-kubeconfig --name ${clusterName} \
-      | grep -oP '\barn.+?cluster/.+?\b'/$
-
-      try { sh 'rm ~/.kube/config 2> /dev/null' } catch (err) { }
-      bash(clusterContextCmd)
-      sh 'chmod 700 ~/.kube/config'
-
       def microserviceEnv = config['s3microserviceEnvPath']
       def bucketName = getBucketName(config['s3BucketPrefix'])
+
+      updateKubeconfigFile()
 
       sh("aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env")
       sh "make upgrade_${serviceName} || make install_${serviceName}"
@@ -233,6 +224,8 @@ def createCluster() {
       def microserviceEnv = config['s3microserviceEnvPath']
       def bucketName = getBucketName(config['s3BucketPrefix'])
 
+      updateKubeconfigFile()
+
       sh("aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env")
       sh 'kubectl apply -R -f eks-config'
       sh 'make install'
@@ -240,6 +233,19 @@ def createCluster() {
 
     sh "rm -rf ${devopsDir}"
   }
+}
+
+def updateKubeconfigFile() {
+  def config = getAwsConfig()
+  def clusterName = config['kubernetesClusterName']
+  def region = config['region']
+  def clusterContextCmd = $/
+      aws eks --region ${region} update-kubeconfig --name ${clusterName} \
+      | grep -oP '\barn.+?cluster/.+?\b'/$
+
+  try { sh 'rm ~/.kube/config 2> /dev/null' } catch (err) { }
+  bash(clusterContextCmd)
+  sh 'chmod 700 ~/.kube/config'
 }
 
 def getBucketName(bucketPrefix) {
