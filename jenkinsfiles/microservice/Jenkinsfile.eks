@@ -149,25 +149,29 @@ def checkServiceName(serviceName) {
 }
 
 def clusterExists(clusterName) {
-  throwIfNull(clusterName, 'clusterName')
-  echo "${clusterName}"
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    throwIfNull(clusterName, 'clusterName')
 
-  try {
-    def region = getAwsConfig()['region']
+    try {
+      def region = getAwsConfig()['region']
 
-    def cmd = $/
-    aws eks list-clusters --region ${region} --output table \
-    | grep -oE '\${clusterName}\b'/$
+      def cmd = $/
+      aws eks list-clusters --region ${region} --output table \
+      | grep -oE '\${clusterName}\b'/$
 
-    def clusterMatch = bash(cmd)
+      def clusterMatch = bash(cmd)
 
-    echo "CLUSTERMACTH ${clusterMatch}"
-
-    return clusterMatch != null && clusterMatch?.isAllWhitespace() == false
-  }
-  catch (Exception ex) {
-    echo 'Error looking for cluster. Returning false'
-    return false
+      return clusterMatch != null && clusterMatch?.isAllWhitespace() == false
+    }
+    catch (Exception ex) {
+      echo 'Error looking for cluster. Returning false'
+      return false
+    }
   }
 }
 
