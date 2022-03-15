@@ -235,7 +235,7 @@ def updateKubeconfigFile() {
       aws eks --region ${region} update-kubeconfig --name ${clusterName} \
       | grep -oP '\barn.+?cluster/.+?\b'/$
 
-  try { sh 'rm ~/.kube/config 2> /dev/null' } catch (err) { }
+  try { sh 'rm ~/.kube/config' } catch (err) { }
   bash(clusterContextCmd)
   sh 'chmod 700 ~/.kube/config'
 }
