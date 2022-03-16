@@ -1,7 +1,7 @@
 include .env
 init: create_cluster create_node_group create_fargate_profile install_services upload_kube_config
 create_policies: create_iam_policies
-install_services: create_service_accounts install_load_balancer install_ascp
+install_services: add_helm_repos create_service_accounts install_load_balancer install_ascp
 
 create_cluster:
 	eksctl create cluster \
