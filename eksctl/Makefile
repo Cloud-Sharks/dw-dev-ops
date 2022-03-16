@@ -23,7 +23,7 @@ create_node_group:
 		--name ${publicNgName} \
 		--cluster ${clusterName} \
 		--region ${region} \
-		--node-type t3a.large \
+		--node-type t4g.medium \
 		--nodes 1 \
 		--nodes-min 1 \
 		--nodes-max 2 \
