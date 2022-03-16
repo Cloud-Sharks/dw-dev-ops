@@ -23,10 +23,10 @@ create_node_group:
 		--name ${publicNgName} \
 		--cluster ${clusterName} \
 		--region ${region} \
-		--node-type t4g.medium \
-		--nodes 1 \
+		--node-type t3.medium \
+		--nodes 2 \
 		--nodes-min 1 \
-		--nodes-max 2 \
+		--nodes-max 3 \
 		--full-ecr-access \
 		--alb-ingress-access
 
