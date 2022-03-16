@@ -60,8 +60,8 @@ clean:
 
 create_iam_policies:
 	aws iam create-policy \
-		--policy-name ${policyName} \
-		--policy-document file://${policyDocument}
+		--policy-name ${albPolicyName} \
+		--policy-document file://${albPolicyDocument}
 
 	aws iam create-policy \
 		--policy-name ${containerSecretPolicyName} \
@@ -78,8 +78,8 @@ create_service_accounts:
 		--cluster=${clusterName} \
 		--region=${region} \
 		--namespace=kube-system \
-		--name=${serviceAccountName} \
-		--attach-policy-arn=arn:aws:iam::${accountId}:policy/${policyName} \
+		--name=${albServiceAccountName} \
+		--attach-policy-arn=arn:aws:iam::${accountId}:policy/${albPolicyName} \
 		--override-existing-serviceaccounts \
 		--approve
 
@@ -99,7 +99,7 @@ apply_load_balancer:
 		-n kube-system \
 		--set clusterName=${clusterName} \
 		--set serviceAccount.create=false \
-		--set serviceAccount.name=${serviceAccountName}
+		--set serviceAccount.name=${albServiceAccountName}
 
 upload_kube_config:
 	BUCKET_NAME=`aws s3 ls | grep -oE '\b${s3BucketPrefix}.*\b'` && \
