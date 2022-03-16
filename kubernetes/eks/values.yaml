@@ -2,3 +2,8 @@ namespace: default
 
 aws:
   ecrRepository: null
+
+resources:
+  limits:
+    cpu: ".2"
+    memory: "350M"
