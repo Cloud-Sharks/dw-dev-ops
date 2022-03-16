@@ -1,7 +1,7 @@
 include .env
-init: create_cluster create_node_group create_fargate_profile install_ascp lbInstall upload_kube_config
-createPolicies: create_iam_policies
-lbInstall: set_context create_service_accounts apply_load_balancer
+init: create_cluster create_node_group create_fargate_profile install_services upload_kube_config
+create_policies: create_iam_policies
+install_services: create_service_accounts install_load_balancer install_ascp
 
 create_cluster:
 	eksctl create cluster \
@@ -48,10 +48,6 @@ create_fargate_profile:
 		--name ${fargateProfileName} \
 		--namespace ${fargateNamespace}
 
-#TODO: Add repo commands and pipe result into /dev/null
-install_ascp:
-	helm install -n kube-system csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver --set syncSecret.enabled=true
-
 clean:
 	eksctl delete cluster \
 		--name ${clusterName} \
@@ -93,13 +89,20 @@ create_service_accounts:
 		--override-existing-serviceaccounts \
 		--approve
 
-#TODO: Add repo commands and pipe result into /dev/null
-apply_load_balancer:
+add_helm_repos:
+	-helm repo add eks https://aws.github.io/eks-charts
+	-helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+	helm repo update
+
+install_load_balancer:
 	helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
 		-n kube-system \
 		--set clusterName=${clusterName} \
 		--set serviceAccount.create=false \
 		--set serviceAccount.name=${albServiceAccountName}
+
+install_ascp:
+	helm install -n kube-system csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver --set syncSecret.enabled=true
 
 upload_kube_config:
 	BUCKET_NAME=`aws s3 ls | grep -oE '\b${s3BucketPrefix}.*\b'` && \
