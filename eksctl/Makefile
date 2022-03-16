@@ -59,13 +59,13 @@ clean:
 		--force
 
 create_iam_policies:
-	aws iam create-policy \
+	-aws iam create-policy \
 		--policy-name ${albPolicyName} \
 		--policy-document file://${albPolicyDocument}
 
-	aws iam create-policy \
+	-aws iam create-policy \
 		--policy-name ${containerSecretPolicyName} \
-		--policy-document file://${containerSecretPolicyDocument}
+		--policy-document file://${containerSecretPolicyDocument};
 
 create_service_accounts:
 	eksctl utils associate-iam-oidc-provider \
