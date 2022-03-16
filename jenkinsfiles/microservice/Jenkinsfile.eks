@@ -185,12 +185,12 @@ def createCluster() {
     def devopsDir = 'devops'
     def repoUrl = config['devopsRepoUrl']
     def eksCtlPath = config['eksctlPath']
+    def bucketName = getBucketName(config['s3BucketPrefix'])
 
     sh "rm -rf ${devopsDir}; git clone ${repoUrl} ${devopsDir}"
 
     dir("${devopsDir}/${eksCtlPath}") {
       def eksctlEnv = config['s3eksctlEnvPath']
-      def bucketName = getBucketName(config['s3BucketPrefix'])
 
       sh "aws s3api get-object --bucket ${bucketName} --key ${eksctlEnv} .env"
       sh 'make init'
@@ -200,7 +200,6 @@ def createCluster() {
 
     dir("${devopsDir}/${kubernetesPath}") {
       def microserviceEnv = config['s3microserviceEnvPath']
-      def bucketName = getBucketName(config['s3BucketPrefix'])
 
       updateKubeconfigFile()
 
