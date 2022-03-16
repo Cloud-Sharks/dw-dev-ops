@@ -189,10 +189,10 @@ def createCluster() {
     sh "rm -rf ${devopsDir}; git clone ${repoUrl} ${devopsDir}"
 
     dir("${devopsDir}/${eksCtlPath}") {
-      def microserviceEnv = config['s3microserviceEnvPath']
+      def eksctlEnv = config['s3eksctlEnvPath']
       def bucketName = getBucketName(config['s3BucketPrefix'])
 
-      sh "aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env"
+      sh "aws s3api get-object --bucket ${bucketName} --key ${eksctlEnv} .env"
       sh 'make init'
     }
 
