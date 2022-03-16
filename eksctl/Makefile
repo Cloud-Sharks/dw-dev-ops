@@ -23,10 +23,10 @@ create_node_group:
 		--name ${publicNgName} \
 		--cluster ${clusterName} \
 		--region ${region} \
-		--node-type t3a.small \
-		--nodes 3 \
+		--node-type t3a.large \
+		--nodes 1 \
 		--nodes-min 1 \
-		--nodes-max 5 \
+		--nodes-max 2 \
 		--full-ecr-access \
 		--alb-ingress-access
 
