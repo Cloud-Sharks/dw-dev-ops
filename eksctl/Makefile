@@ -1,5 +1,5 @@
 include .env
-init: create_cluster create_node_group create_fargate_profile install_services upload_kube_config
+init: create_cluster create_node_group create_fargate_profile install_services
 create_policies: create_iam_policies
 install_services: add_helm_repos create_service_accounts install_load_balancer install_ascp
 
@@ -92,8 +92,3 @@ install_load_balancer:
 
 install_ascp:
 	helm install -n kube-system csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver --set syncSecret.enabled=true
-
-upload_kube_config:
-	BUCKET_NAME=`aws s3 ls | grep -oE '\b${s3BucketPrefix}.*\b'` && \
-	kubectl config view --minify > kubeconfig.yml && \
-	aws s3 cp kubeconfig.yml s3://$$BUCKET_NAME/kubeconfig.yml
