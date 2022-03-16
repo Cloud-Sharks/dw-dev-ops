@@ -30,17 +30,6 @@ create_node_group:
 		--full-ecr-access \
 		--alb-ingress-access
 
-	eksctl create nodegroup \
-		--name ${privateNgName} \
-		--node-private-networking \
-		--cluster ${clusterName} \
-		--region ${region} \
-		--node-type t2.small \
-		--nodes-min 1 \
-		--nodes-max 5 \
-		--full-ecr-access \
-		--alb-ingress-access
-
 create_fargate_profile:
 	eksctl create fargateprofile \
 		--cluster ${clusterName} \
