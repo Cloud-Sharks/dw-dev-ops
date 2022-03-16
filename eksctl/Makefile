@@ -23,8 +23,8 @@ create_node_group:
 		--name ${publicNgName} \
 		--cluster ${clusterName} \
 		--region ${region} \
-		--node-type t3.small \
-		--nodes 2 \
+		--node-type t3a.small \
+		--nodes 3 \
 		--nodes-min 1 \
 		--nodes-max 5 \
 		--full-ecr-access \
