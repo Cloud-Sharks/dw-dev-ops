@@ -11,6 +11,7 @@ create_cluster:
 		--alb-ingress-access \
 		--without-nodegroup \
 		--vpc-nat-mode Single \
+		--zones us-east-1a,us-east-1b
 
 set_context:
 	eksctl utils write-kubeconfig \
