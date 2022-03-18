@@ -1,0 +1,16 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ${clusterName}
+  region: ${regionName}
+
+nodeGroups:
+  - name: ${publicNgName}
+    instanceType: ${instanceType}
+    desiredCapacity: ${desiredCapacity}
+    volumeSize: ${volumeSize}
+
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["*"]
