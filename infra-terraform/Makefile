@@ -7,6 +7,6 @@ apply_dev:
 
 	terraform apply
 	terraform output -json > $$JSON_OUTPUT
-	aws secretsmanager put-secret-value --secret-id $$KEY_NAME --secret-string file://$$JSON_OUTPUT|| \
-		aws secretsmanager create-secret --name $$KEY_NAME --secret-string file://$$JSON_OUTPUT
-	rm $$JSON_OUTPUT
+
+	BUCKET_NAME=`aws s3 ls | grep -oP '\bdw-infra-.+?\b'`
+	aws s3 mv $$JSON_OUTPUT s3://$$BUCKET_NAME/$$JSON_OUTPUT
