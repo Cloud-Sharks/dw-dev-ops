@@ -3,7 +3,7 @@ kind: ClusterConfig
 
 metadata:
   name: ${clusterName}
-  region: ${regionName}
+  region: ${region}
 
 nodeGroups:
   - name: ${publicNgName}
