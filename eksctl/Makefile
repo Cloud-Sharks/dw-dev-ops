@@ -11,6 +11,7 @@ create_cluster:
 		--alb-ingress-access \
 		--without-nodegroup \
 		--vpc-nat-mode Single \
+		--zones us-east-1a,us-east-1b
 
 set_context:
 	eksctl utils write-kubeconfig \
@@ -23,10 +24,10 @@ create_node_group:
 		--name ${publicNgName} \
 		--cluster ${clusterName} \
 		--region ${region} \
-		--node-type t3a.small \
-		--nodes 3 \
+		--node-type t3.medium \
+		--nodes 2 \
 		--nodes-min 1 \
-		--nodes-max 5 \
+		--nodes-max 3 \
 		--full-ecr-access \
 		--alb-ingress-access
 
