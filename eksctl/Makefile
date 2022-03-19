@@ -3,14 +3,22 @@ init: create_cluster create_node_group create_fargate_profile install_services
 create_policies: create_iam_policies
 install_services: add_helm_repos create_service_accounts install_load_balancer install_ascp
 
+.ONESHELL:
 create_cluster:
+	BUCKET_NAME=`aws s3 ls | grep -oP '\bdw-infra-.+?\b'`
+	aws s3api get-object --bucket $$BUCKET_NAME --key tfoutput.json tfoutput.json
+
+	PUBLIC_SUBNETS=`cat tfoutput.json | jq -r .public_subnet_ids.value[] | xargs echo | sed 's: :,:g'`
+	PRIVATE_SUBNETS=`cat tfoutput.json | jq -r .private_subnet_ids.value[] | xargs echo | sed 's: :,:g'`
+	rm tfoutput.json
+
 	eksctl create cluster \
 		--name ${clusterName} \
-		--region ${region} \
-		--full-ecr-access \
-		--alb-ingress-access \
+		--vpc-public-subnets=$$PUBLIC_SUBNETS \
+		--vpc-private-subnets=$$PRIVATE_SUBNETS \
 		--without-nodegroup \
-		--vpc-nat-mode Single \
+
+	eksctl utils update-cluster-logging --cluster ${clusterName} --enable-types all --approve
 
 set_context:
 	eksctl utils write-kubeconfig \
@@ -21,11 +29,7 @@ set_context:
 create_node_group:
 	eksctl create nodegroup \
 		--name ${publicNgName} \
-		--cluster ${clusterName} \
-		--region ${region} \
-		--node-type t3a.small \
-		--nodes 3 \
-		--nodes-min 1 \
+		--cluster ${clusterName} \	aws secretsmanager get-secret-value \
 		--nodes-max 5 \
 		--full-ecr-access \
 		--alb-ingress-access
