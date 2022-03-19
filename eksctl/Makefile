@@ -41,7 +41,8 @@ clean:
 	eksctl delete cluster \
 		--name ${clusterName} \
 		--region ${region} \
-		--force
+		--force \
+		--wait
 
 create_iam_policies:
 	-aws iam create-policy \
