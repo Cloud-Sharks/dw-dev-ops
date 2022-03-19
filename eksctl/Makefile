@@ -1,5 +1,5 @@
 include .env
-init: create_cluster create_node_group create_fargate_profile install_services
+init: create_cluster create_node_group install_services
 create_policies: create_iam_policies
 install_services: add_helm_repos create_service_accounts install_load_balancer install_ascp
 
