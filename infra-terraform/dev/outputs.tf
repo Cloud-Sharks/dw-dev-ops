@@ -11,3 +11,8 @@ output "private_subnet_ids" {
   value       = module.vpc.private_subnet_ids
   description = "Public Subnet IDS"
 }
+
+output "avalibility_zones" {
+  value       = var.azs
+  description = "Avalibility zones"
+}
