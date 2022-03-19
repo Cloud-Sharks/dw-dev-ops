@@ -19,23 +19,6 @@ resource "aws_internet_gateway" "gw" {
 }
 
 ################################################################################
-# Peering Connection
-################################################################################
-
-data "aws_vpc" "default" {
-  default = true
-}
-
-resource "aws_vpc_peering_connection" "foo" {
-  peer_vpc_id = aws_vpc.main.id
-  vpc_id      = data.aws_vpc.default.id
-  auto_accept = true
-  tags = {
-    Name = "${var.vpc_name} Peering Connection"
-  }
-}
-
-################################################################################
 # Subnets
 ################################################################################
 
@@ -117,6 +100,53 @@ resource "aws_route_table" "private" {
   tags = {
     Name = "${var.vpc_name} Private Route Table"
   }
+}
+
+################################################################################
+# Peering Connection
+################################################################################
+
+resource "aws_default_vpc" "default" {}
+
+resource "aws_vpc_peering_connection" "connection" {
+  vpc_id      = aws_vpc.main.id
+  peer_vpc_id = aws_default_vpc.default.id
+  auto_accept = true
+
+  tags = {
+    Name = "${var.vpc_name} Peering Connection"
+  }
+}
+
+resource "aws_route" "public_table_peering_route" {
+  route_table_id            = aws_route_table.public.id
+  destination_cidr_block    = aws_default_vpc.default.cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
+}
+
+resource "aws_route" "private_table_peering_route" {
+  route_table_id            = aws_route_table.private.id
+  destination_cidr_block    = aws_default_vpc.default.cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
+}
+
+# Default VPC peering configuration
+data "aws_route_table" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [aws_default_vpc.default.id]
+  }
+
+  filter {
+    name   = "association.main"
+    values = [true]
+  }
+}
+
+resource "aws_route" "default" {
+  route_table_id            = data.aws_route_table.default.id
+  destination_cidr_block    = aws_vpc.main.cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
 }
 
 ################################################################################
