@@ -10,15 +10,28 @@ resource "aws_vpc" "main" {
   }
 }
 
-################################################################################
-# Internet Gateway
-################################################################################
-
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 
   tags = {
     Name = "${var.vpc_name} Internet gateway"
+  }
+}
+
+################################################################################
+# Peering Connection
+################################################################################
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+resource "aws_vpc_peering_connection" "foo" {
+  peer_vpc_id = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
+  auto_accept = true
+  tags = {
+    Name = "${var.vpc_name} Peering Connection"
   }
 }
 
