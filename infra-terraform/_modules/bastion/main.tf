@@ -23,6 +23,7 @@ resource "aws_instance" "bastion" {
   security_groups = var.security_group_ids
   user_data       = <<EOF
 #!/bin/bash
+echo "EDITOR=vim" >> .bashrc
 sudo apt update && sudo apt upgrade -y
 sudo apt install mysql-client-core-8.0
 EOF
