@@ -16,7 +16,7 @@ create_cluster:
 		--name ${clusterName} \
 		--vpc-public-subnets=$$PUBLIC_SUBNETS \
 		--vpc-private-subnets=$$PRIVATE_SUBNETS \
-		--without-nodegroup \
+		--without-nodegroup
 
 	eksctl utils update-cluster-logging --cluster ${clusterName} --enable-types all --approve
 
@@ -29,7 +29,11 @@ set_context:
 create_node_group:
 	eksctl create nodegroup \
 		--name ${publicNgName} \
-		--cluster ${clusterName} \	aws secretsmanager get-secret-value \
+		--cluster ${clusterName} \
+		--region ${region} \
+		--node-type t3.small \
+		--nodes 2 \
+		--nodes-min 1 \
 		--nodes-max 5 \
 		--full-ecr-access \
 		--alb-ingress-access
@@ -55,7 +59,7 @@ create_iam_policies:
 
 	-aws iam create-policy \
 		--policy-name ${containerSecretPolicyName} \
-		--policy-document file://${containerSecretPolicyDocument};
+		--policy-document file://${containerSecretPolicyDocument}
 
 create_service_accounts:
 	eksctl utils associate-iam-oidc-provider \
