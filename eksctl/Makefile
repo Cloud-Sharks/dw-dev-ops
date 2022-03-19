@@ -34,7 +34,7 @@ create_node_group:
 		--node-type t3.small \
 		--nodes 2 \
 		--nodes-min 1 \
-		--nodes-max 5 \
+		--nodes-max 3 \
 		--full-ecr-access \
 		--alb-ingress-access
 
