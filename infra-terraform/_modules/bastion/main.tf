@@ -1,4 +1,3 @@
-
 data "aws_ami" "ubuntu" {
   most_recent = true
 
@@ -16,12 +15,12 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_instance" "bastion" {
-  ami             = data.aws_ami.ubuntu.id
-  instance_type   = var.instance_type
-  subnet_id       = var.public_subnet_id
-  key_name        = var.key_name
-  security_groups = var.security_group_ids
-  user_data       = <<EOF
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.instance_type
+  subnet_id              = var.public_subnet_id
+  key_name               = var.key_name
+  vpc_security_group_ids = var.security_group_ids
+  user_data              = <<EOF
 #!/bin/bash
 echo "EDITOR=vim" >> .bashrc
 sudo apt update && sudo apt upgrade -y
