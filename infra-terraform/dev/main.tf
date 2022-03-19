@@ -19,8 +19,18 @@ module "vpc" {
   private_subnets = var.private_subnets
   azs             = var.azs
 
-  private_subnet_tags = local.global_tags
-  public_subnet_tags  = local.global_tags
+  private_subnet_tags = merge({
+    "kubernetes.io/cluster/${var.eks_cluster_name}" : "owned",
+    "kubernetes.io/role/elb" : 1
+    },
+    local.global_tags
+  )
+
+  public_subnet_tags = merge({
+    "kubernetes.io/role/internal-elb" : 1
+    },
+    local.global_tags
+  )
 }
 
 module "security_groups" {

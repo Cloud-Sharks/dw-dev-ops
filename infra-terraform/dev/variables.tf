@@ -42,6 +42,11 @@ variable "public_subnets" {
   description = "Public subnet CIDR blocks"
 }
 
+variable "eks_cluster_name" {
+  type        = string
+  description = "Name of the eks cluster"
+}
+
 ################################################################################
 # S3
 ################################################################################
