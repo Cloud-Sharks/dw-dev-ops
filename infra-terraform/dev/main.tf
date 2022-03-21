@@ -53,3 +53,12 @@ module "secrets" {
   environment  = var.environment
   tags         = local.global_tags
 }
+
+module "bastion" {
+  source             = "../_modules/bastion"
+  private_subnet_id  = element(module.vpc.private_subnet_ids, 0)
+  public_subnet_id   = element(module.vpc.public_subnet_ids, 0)
+  security_group_ids = module.security_groups.security_group_ids
+  key_name           = var.key_name
+  tags               = local.global_tags
+}

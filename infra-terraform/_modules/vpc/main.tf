@@ -10,10 +10,6 @@ resource "aws_vpc" "main" {
   }
 }
 
-################################################################################
-# Internet Gateway
-################################################################################
-
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 
@@ -77,6 +73,41 @@ resource "aws_nat_gateway" "nat_gw" {
 }
 
 ################################################################################
+# Peering Connection
+################################################################################
+
+resource "aws_default_vpc" "default" {}
+
+resource "aws_vpc_peering_connection" "connection" {
+  vpc_id      = aws_vpc.main.id
+  peer_vpc_id = aws_default_vpc.default.id
+  auto_accept = true
+
+  tags = {
+    Name = "${var.vpc_name} Peering Connection"
+  }
+}
+
+# Default VPC peering configuration
+data "aws_route_table" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [aws_default_vpc.default.id]
+  }
+
+  filter {
+    name   = "association.main"
+    values = [true]
+  }
+}
+
+resource "aws_route" "default" {
+  route_table_id            = data.aws_route_table.default.id
+  destination_cidr_block    = aws_vpc.main.cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
+}
+
+################################################################################
 # Route Tables
 ################################################################################
 
@@ -86,6 +117,11 @@ resource "aws_route_table" "public" {
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.gw.id
+  }
+
+  route {
+    cidr_block                = aws_default_vpc.default.cidr_block
+    vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
   }
 
   tags = {
@@ -99,6 +135,11 @@ resource "aws_route_table" "private" {
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.nat_gw.id
+  }
+
+  route {
+    cidr_block                = aws_default_vpc.default.cidr_block
+    vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
   }
 
   tags = {

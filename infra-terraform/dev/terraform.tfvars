@@ -20,6 +20,8 @@ bucket_name = "dw-infra"
 
 s3_files = [ "../assets/secret/.microservice.env", "../assets/secret/.eksctl.env" ]
 
+key_name = "dw-us-east-1"
+
 file_secrets = [{
    key = "dw-infra-secret",
    path = "../assets/secret/secret.json"
