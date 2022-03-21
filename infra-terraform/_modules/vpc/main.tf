@@ -73,36 +73,6 @@ resource "aws_nat_gateway" "nat_gw" {
 }
 
 ################################################################################
-# Route Tables
-################################################################################
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
-  }
-
-  tags = {
-    Name = "${var.vpc_name} Public Route Table"
-  }
-}
-
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat_gw.id
-  }
-
-  tags = {
-    Name = "${var.vpc_name} Private Route Table"
-  }
-}
-
-################################################################################
 # Peering Connection
 ################################################################################
 
@@ -116,18 +86,6 @@ resource "aws_vpc_peering_connection" "connection" {
   tags = {
     Name = "${var.vpc_name} Peering Connection"
   }
-}
-
-resource "aws_route" "public_table_peering_route" {
-  route_table_id            = aws_route_table.public.id
-  destination_cidr_block    = aws_default_vpc.default.cidr_block
-  vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
-}
-
-resource "aws_route" "private_table_peering_route" {
-  route_table_id            = aws_route_table.private.id
-  destination_cidr_block    = aws_default_vpc.default.cidr_block
-  vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
 }
 
 # Default VPC peering configuration
@@ -147,6 +105,46 @@ resource "aws_route" "default" {
   route_table_id            = data.aws_route_table.default.id
   destination_cidr_block    = aws_vpc.main.cidr_block
   vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
+}
+
+################################################################################
+# Route Tables
+################################################################################
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.gw.id
+  }
+
+  route {
+    cidr_block                = aws_default_vpc.default.cidr_block
+    vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
+  }
+
+  tags = {
+    Name = "${var.vpc_name} Public Route Table"
+  }
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_gw.id
+  }
+
+  route {
+    cidr_block                = aws_default_vpc.default.cidr_block
+    vpc_peering_connection_id = aws_vpc_peering_connection.connection.id
+  }
+
+  tags = {
+    Name = "${var.vpc_name} Private Route Table"
+  }
 }
 
 ################################################################################
