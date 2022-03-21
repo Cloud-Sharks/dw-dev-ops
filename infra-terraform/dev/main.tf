@@ -19,8 +19,18 @@ module "vpc" {
   private_subnets = var.private_subnets
   azs             = var.azs
 
-  private_subnet_tags = local.global_tags
-  public_subnet_tags  = local.global_tags
+  private_subnet_tags = merge({
+    "kubernetes.io/cluster/${var.eks_cluster_name}" : "owned",
+    "kubernetes.io/role/elb" : 1
+    },
+    local.global_tags
+  )
+
+  public_subnet_tags = merge({
+    "kubernetes.io/role/internal-elb" : 1
+    },
+    local.global_tags
+  )
 }
 
 module "security_groups" {
@@ -42,4 +52,13 @@ module "secrets" {
   file_secrets = var.file_secrets
   environment  = var.environment
   tags         = local.global_tags
+}
+
+module "bastion" {
+  source             = "../_modules/bastion"
+  private_subnet_id  = element(module.vpc.private_subnet_ids, 0)
+  public_subnet_id   = element(module.vpc.public_subnet_ids, 0)
+  security_group_ids = module.security_groups.security_group_ids
+  key_name           = var.key_name
+  tags               = local.global_tags
 }

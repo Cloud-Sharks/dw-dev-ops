@@ -3,12 +3,12 @@ output "vpc_id" {
   description = "ID of the VPC"
 }
 
-output "public_subnets_ids" {
+output "public_subnet_ids" {
   value       = aws_subnet.public[*].id
   description = "Public Subnet IDS"
 }
 
-output "private_subnets_ids" {
+output "private_subnet_ids" {
   value       = aws_subnet.private[*].id
   description = "Public Subnet IDS"
 }
