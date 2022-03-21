@@ -1,58 +1,50 @@
 include .env
+init: install_services install
 install: install_bank install_user install_transaction install_underwriter
 uninstall: uninstall_bank uninstall_user uninstall_transaction uninstall_underwriter
 upgrade: upgrade_bank upgrade_user upgrade_transaction upgrade_underwriter
 
+define helm
+	helm $1 $2-microservice . \
+		--set aws.ecrRepository=${ECR_REPOSITORY} \
+		--values microservice-values/$2.values.yml
+endef
+
+install_services: 
+	kubectl apply -R -f eks-config
+
 install_bank:
-	-helm install bank-microservice . \
-			--set aws.ecrRepository=${ECR_REPOSITORY} \
-			--values microservice-values/bank.values.yml
+	-$(call helm,install,bank)
 
 install_user:
-	-helm install user-microservice . \
-		--set aws.ecrRepository=${ECR_REPOSITORY} \
-		--values microservice-values/user.values.yml
+	-$(call helm,install,user)
 
 install_transaction:
-	-helm install transaction-microservice . \
-		--set aws.ecrRepository=${ECR_REPOSITORY} \
-		--set aws.ecrRepository=${ECR_REPOSITORY} \
-		--values microservice-values/transaction.values.yml
+	-$(call helm,install,transaction)
 
 install_underwriter:
-	-helm install underwriter-microservice . \
-		--set aws.ecrRepository=${ECR_REPOSITORY} \
-		--values microservice-values/underwriter.values.yml
+	-$(call helm,install,underwriter)
 
 uninstall_bank:
-	-helm uninstall bank-microservice
+	-$(call helm,uninstall,bank)
 
 uninstall_user:
-	-helm uninstall user-microservice
+	-$(call helm,uninstall,user)
 
 uninstall_transaction:
-	-helm uninstall transaction-microservice
+	-$(call helm,uninstall,transaction)
 
 uninstall_underwriter:
-	-helm uninstall underwriter-microservice
+	-$(call helm,uninstall,underwriter)
 
 upgrade_bank:
-	-helm upgrade bank-microservice . \
-		--set aws.ecrRepository=${ECR_REPOSITORY} \
-		--values microservice-values/bank.values.yml
+	-$(call helm,upgrade,bank)
 
 upgrade_user:
-	-helm upgrade user-microservice . \
-		--set aws.ecrRepository=${ECR_REPOSITORY} \
-		--values microservice-values/user.values.yml
+	-$(call helm,upgrade,user)
 
 upgrade_transaction:
-	-helm upgrade transaction-microservice . \
-		--set aws.ecrRepository=${ECR_REPOSITORY} \
-		--values microservice-values/transaction.values.yml
+	-$(call helm,upgrade,transaction)
 
 upgrade_underwriter:
-	-helm upgrade underwriter-microservice . \
-			--set aws.ecrRepository=${ECR_REPOSITORY} \
-			--values microservice-values/underwriter.values.yml
-
+	-$(call helm,upgrade,underwriter)
