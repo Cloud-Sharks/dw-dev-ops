@@ -204,8 +204,7 @@ def createCluster() {
       updateKubeconfigFile()
 
       sh("aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env")
-      sh 'kubectl apply -R -f eks-config'
-      sh 'make install'
+      sh 'make init'
     }
 
     sh "rm -rf ${devopsDir}"
