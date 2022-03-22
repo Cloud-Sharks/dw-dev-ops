@@ -6,11 +6,15 @@ install_services: add_helm_repos create_service_accounts install_load_balancer i
 .ONESHELL:
 create_cluster:
 	BUCKET_NAME=`aws s3 ls | grep -oP '\bdw-infra-.+?\b'`
-	aws s3api get-object --bucket $$BUCKET_NAME --key tfoutput.json tfoutput.json
+	aws s3api get-object --bucket $$BUCKET_NAME --key tfoutput.json tfoutput.json || exit 1
 
 	PUBLIC_SUBNETS=`cat tfoutput.json | jq -r .public_subnet_ids.value[] | xargs echo | sed 's: :,:g'`
 	PRIVATE_SUBNETS=`cat tfoutput.json | jq -r .private_subnet_ids.value[] | xargs echo | sed 's: :,:g'`
+	ALL_SUBNETS=`cat tfoutput.json | jq -r '.public_subnet_ids.value[], .private_subnet_ids.value[]'`
 	rm tfoutput.json
+
+# Check if the subnets are valid
+	aws ec2 describe-subnets --no-paginate --output text --subnet-ids $$ALL_SUBNETS | cat || exit 1
 
 	eksctl create cluster \
 		--name ${clusterName} \
