@@ -5,7 +5,7 @@ apply_dev:
 	KEY_NAME=tfoutput
 	JSON_OUTPUT=tfoutput.json
 
-	terraform apply
+	terraform apply -auto-approve
 	terraform output -json > $$JSON_OUTPUT
 
 	BUCKET_NAME=`aws s3 ls | grep -oP '\bdw-infra-.+?\b'`
