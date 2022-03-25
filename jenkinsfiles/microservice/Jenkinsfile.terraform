@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            checkout scm
+        }
+
+        stage('Plan') {
+            sh 'terraform -chdir=infra-terraform/dev plan -out plan'
+        }
+
+        stage('Apply') {
+            sh 'terraform apply -chdir=infra-terraform/dev plan'
+        }
+    }
+
+    post {
+        always {
+            sh 'rm plan'
+        }
+    }
+}
