@@ -8,5 +8,5 @@ apply_dev:
 	terraform apply -auto-approve
 	terraform output -json > $$JSON_OUTPUT
 
-	BUCKET_NAME=`aws s3 ls | grep -oP '\bdw-infra-.+?\b'`
+	BUCKET_NAME=`dw-infra-bucket`
 	aws s3 mv $$JSON_OUTPUT s3://$$BUCKET_NAME/$$JSON_OUTPUT
