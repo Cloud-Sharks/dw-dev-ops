@@ -22,6 +22,8 @@ pipeline {
         {
           dir('infra-terraform/dev') {
             sh 'terraform init'
+            sh 'aws s3 cp s3://dw-infra-bucket/secrets ../assets/secret --recursive'
+            sh 'aws s3 cp s3://dw-infra-bucket/env ../assets/secret --recursive'
           }
 
           dir('infra-terraform') {
