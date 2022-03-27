@@ -1,23 +1,36 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
-        stage('Checkout') {
-            checkout scm
-        }
-
-        stage('Plan') {
-            sh 'terraform -chdir=infra-terraform/dev plan -out plan'
-        }
-
-        stage('Apply') {
-            sh 'terraform apply -chdir=infra-terraform/dev plan'
-        }
+  stages {
+    stage('Checkout') {
+      steps {
+        git branch: 'jenkins-terraform', credentialsId: 'davidsmoothstack-githubtoken', url: 'https://github.com/Cloud-Sharks/dw-dev-ops.git'
+      }
     }
 
-    post {
-        always {
-            sh 'rm plan'
+    stage('Apply') {
+      steps {
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'DW-Jenkins-AWS-Credentials',
+          accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+        {
+          dir('infra-terraform/dev') {
+            sh 'terraform init'
+          }
+
+          dir('infra-terraform') {
+            sh 'make apply_dev'
+          }
         }
+      }
     }
+  }
+
+  post {
+    always {
+      cleanWs()
+    }
+  }
 }
