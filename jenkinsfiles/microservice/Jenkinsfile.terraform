@@ -1,6 +1,10 @@
 pipeline {
   agent any
 
+  environment {
+    AWS_PROFILE = 'dw-jenkins'
+  }
+
   stages {
     stage('Checkout') {
       steps {
