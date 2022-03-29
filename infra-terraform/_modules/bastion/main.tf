@@ -20,12 +20,6 @@ resource "aws_instance" "bastion" {
   subnet_id              = var.public_subnet_id
   key_name               = var.key_name
   vpc_security_group_ids = var.security_group_ids
-  user_data              = <<EOF
-#!/bin/bash
-echo "EDITOR=vim" >> .bashrc
-sudo apt update && sudo apt upgrade -y
-sudo apt install mysql-client-core-8.0
-EOF
 
   tags = merge({ Name = "DW Bastion" }, var.tags)
 }
