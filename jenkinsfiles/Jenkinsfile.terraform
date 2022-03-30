@@ -6,7 +6,7 @@ pipeline {
   }
 
   stages {
-    stage('Get Required S3 files') {
+    stage('Init') {
         withCredentials([[
           $class: 'AmazonWebServicesCredentialsBinding',
           credentialsId: 'DW-Jenkins-AWS-Credentials',
@@ -14,14 +14,11 @@ pipeline {
           secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
         {
           dir('infra-terraform/dev') {
+            sh 'terraform init'
             sh 'aws s3 cp s3://dw-infra-bucket/secrets ../assets/secret --recursive'
             sh 'aws s3 cp s3://dw-infra-bucket/env ../assets/secret --recursive'
           }
         }
-    }
-
-    stage('Init') {
-      sh 'terraform init'
     }
 
     stage('Plan') {
