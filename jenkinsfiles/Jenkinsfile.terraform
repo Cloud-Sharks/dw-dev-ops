@@ -32,8 +32,10 @@ pipeline {
     }
 
     stage('Apply') {
-      dir('infra-terraform') {
-        sh 'make apply_dev'
+      steps {
+        dir('infra-terraform') {
+          sh 'make apply_dev'
+        }
       }
     }
   }
