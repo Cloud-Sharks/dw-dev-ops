@@ -6,13 +6,7 @@ pipeline {
   }
 
   stages {
-    stage('Checkout') {
-      steps {
-        git branch: 'jenkins-terraform', credentialsId: 'davidsmoothstack-githubtoken', url: 'https://github.com/Cloud-Sharks/dw-dev-ops.git'
-      }
-    }
-
-    stage('Apply') {
+    stage('Init') {
       steps {
         withCredentials([[
           $class: 'AmazonWebServicesCredentialsBinding',
@@ -25,10 +19,22 @@ pipeline {
             sh 'aws s3 cp s3://dw-infra-bucket/secrets ../assets/secret --recursive'
             sh 'aws s3 cp s3://dw-infra-bucket/env ../assets/secret --recursive'
           }
+        }
+      }
+    }
 
-          dir('infra-terraform') {
-            sh 'make apply_dev'
-          }
+    stage('Plan') {
+      steps {
+        dir('infra-terraform') {
+          sh 'make plan_dev'
+        }
+      }
+    }
+
+    stage('Apply') {
+      steps {
+        dir('infra-terraform') {
+          sh 'make apply_dev'
         }
       }
     }
