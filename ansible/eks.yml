@@ -1,0 +1,5 @@
+- import_playbook: tasks/register-bastion.yml
+
+- import_playbook: tasks/copy-eks-makefile.yml
+
+- import_playbook: tasks/init-eks.yml
