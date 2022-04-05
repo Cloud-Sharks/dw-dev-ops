@@ -1,0 +1,15 @@
+- name: Configure instance(s)
+  hosts: bastion
+  become: yes
+  remote_user: ubuntu
+  vars:
+    ansible_ssh_private_key_file: ./dw-us-east-1.pem
+  tasks:
+    - name: Update apt repo
+      command: sudo apt update
+
+    - name: Update packages
+      command: sudo apt upgrade -y
+
+    - name: Install mysql client
+      command: sudo apt install -y mysql-client-core-8.0

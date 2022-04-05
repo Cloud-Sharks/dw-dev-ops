@@ -1,0 +1,18 @@
+- name: Get EC2 Bastion instance
+  hosts: localhost
+  remote_user: root
+
+  tasks:
+    - name: Register instance
+      amazon.aws.ec2_instance_info:
+        filters:
+          "tag:Name": "DW Bastion"
+          "instance-state-name": "running"
+          "key-name": "dw-us-east-1"
+      register: bastion
+
+    - name: Add instances to bastion group
+      add_host:
+        hostname: "{{ item.public_ip_address }}"
+        groupname: bastion
+      loop: "{{ bastion.instances }}"
