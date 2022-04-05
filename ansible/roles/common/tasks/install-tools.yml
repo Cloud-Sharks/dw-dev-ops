@@ -13,3 +13,6 @@
 
     - name: Install mysql client
       command: sudo apt install -y mysql-client-core-8.0
+
+    - name: Install JQ
+      command: sudo apt install -y jq
