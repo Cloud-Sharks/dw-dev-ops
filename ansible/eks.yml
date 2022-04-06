@@ -3,3 +3,8 @@
 - import_playbook: roles/common/tasks/init-eks.yml
   vars:
     ansible_ssh_private_key_file: roles/common/files/dw-us-east-1.pem
+    aws_environment:
+      AWS_ACCESS_KEY_ID: "{{aws_key}}"
+      AWS_SECRET_ACCESS_KEY: "{{aws_secret}}"
+      AWS_DEFAULT_REGION: "{{aws_region}}"
+    branch: "{{ branch | default('main')}}"

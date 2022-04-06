@@ -2,13 +2,6 @@
   hosts: bastion
   become_user: ubuntu
   remote_user: ubuntu
-  vars:
-    aws_environment:
-      AWS_ACCESS_KEY_ID: "{{aws_key}}"
-      AWS_SECRET_ACCESS_KEY: "{{aws_secret}}"
-      AWS_DEFAULT_REGION: "{{aws_region}}"
-    branch: "{{ branch | default('main')}}"
-
   tasks:
     - name: Copy Repo
       shell:
@@ -21,20 +14,20 @@
         cmd: git checkout {{ branch }}
 
     - name: Get makefile env
-      environment: "{{aws_environment}}"
+      environment: "{{ aws_environment }}"
       shell:
         chdir: ~/devops/eksctl
         cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.eksctl.env  .env
 
     - name: Add policies
-      environment: "{{aws_environment}}"
+      environment: "{{ aws_environment }}"
       ignore_errors: yes
       shell:
         chdir: ~/devops/eksctl
         cmd: make create_policies
 
     - name: Init cluster
-      environment: "{{aws_environment}}"
+      environment: "{{ aws_environment }}"
       shell:
         chdir: ~/devops/eksctl
         cmd: make init
