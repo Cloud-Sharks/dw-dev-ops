@@ -12,29 +12,34 @@
   tasks:
     - name: Copy Repo
       shell:
-        cmd: rm -rf devops; git clone {{ git_repo }} devops
         chdir: ~
+        cmd: rm -rf devops; git clone {{ git_repo }} devops
 
     - name: Checkout branch
       shell:
-        cmd: git checkout {{ branch }}
         chdir: ~/devops
+        cmd: git checkout {{ branch }}
 
     - name: Get makefile env
       environment: "{{aws_environment}}"
       shell:
-        cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.eksctl.env  .env
         chdir: ~/devops/eksctl
+        cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.eksctl.env  .env
 
     - name: Add policies
       environment: "{{aws_environment}}"
       ignore_errors: yes
       shell:
-        cmd: make create_policies
         chdir: ~/devops/eksctl
+        cmd: make create_policies
 
     - name: Init cluster
       environment: "{{aws_environment}}"
       shell:
-        cmd: make init
         chdir: ~/devops/eksctl
+        cmd: make init
+
+    - name: Install services
+      shell:
+        chdir: ~/devops/kubernetes/eks
+        cmd: make init
