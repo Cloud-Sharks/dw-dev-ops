@@ -13,7 +13,7 @@
         chdir: ~/devops
         cmd: git checkout {{ branch }}
 
-    - name: Get makefile env
+    - name: Get eksctl makefile env
       environment: "{{ aws_environment }}"
       shell:
         chdir: ~/devops/eksctl
@@ -32,7 +32,25 @@
         chdir: ~/devops/eksctl
         cmd: make init
 
+- name: Install services
+  hosts: bastion
+  become_user: ubuntu
+  remote_user: ubuntu
+  tasks:
+    - name: Set Context
+      environment: "{{ aws_environment }}"
+      shell:
+        chdir: ~/devops/eksctl
+        cmd: make set_context
+
+    - name: Get microservice env
+      environment: "{{ aws_environment }}"
+      shell:
+        chdir: ~/devops/kubernetes/eks
+        cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.microservice.env  .env
+
     - name: Install services
+      environment: "{{ aws_environment }}"
       shell:
         chdir: ~/devops/kubernetes/eks
         cmd: make init
