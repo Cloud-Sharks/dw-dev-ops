@@ -18,8 +18,6 @@ azs = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
 bucket_name = "dw-infra"
 
-s3_files = [ "../assets/secret/.microservice.env", "../assets/secret/.eksctl.env" ]
-
 key_name = "dw-us-east-1"
 
 file_secrets = [{
