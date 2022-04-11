@@ -1,12 +1,20 @@
 .ONESHELL:
-apply_dev:
-	cd dev
-
-	KEY_NAME=tfoutput
+define apply
 	JSON_OUTPUT=tfoutput.json
 
-	terraform apply
-	terraform output -json > $$JSON_OUTPUT
+	terraform -chdir=$1 apply -auto-approve
+	terraform -chdir=$1 output -json > $$JSON_OUTPUT
 
-	BUCKET_NAME=`aws s3 ls | grep -oP '\bdw-infra-.+?\b'`
-	aws s3 mv $$JSON_OUTPUT s3://$$BUCKET_NAME/$$JSON_OUTPUT
+	aws s3 mv $$JSON_OUTPUT s3://dw-infra-bucket/terraform/$$JSON_OUTPUT
+endef
+
+define plan
+	terraform -chdir=$1 plan
+endef
+
+plan_dev:
+	$(call plan,dev)
+
+apply_dev:
+	$(call apply,dev)
+

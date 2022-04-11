@@ -31,7 +31,7 @@ pipeline {
 
     stage('SonarQube Code Analysis') {
       steps {
-        withSonarQubeEnv('SonarQubeServer') {
+        withSonarQubeEnv('dw-sonarqube') {
           sh 'mvn verify sonar:sonar -Dmaven.test.skip=true'
         }
       }
