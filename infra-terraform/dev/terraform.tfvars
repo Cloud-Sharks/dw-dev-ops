@@ -20,11 +20,3 @@ bucket_name = "dw-infra"
 
 key_name = "dw-us-east-1"
 
-file_secrets = [{
-   key = "dw-infra-secret",
-   path = "../assets/secret/secret.json"
-}, {
-    key = "dw-microservice-secrets",
-    path = "../assets/secret/secret.microservice.json"
-}]
-
