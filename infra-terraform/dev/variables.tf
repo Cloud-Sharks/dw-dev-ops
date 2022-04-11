@@ -44,7 +44,7 @@ variable "public_subnets" {
 
 variable "eks_cluster_name" {
   type        = string
-  description = "Name of the eks cluster"
+  description = "Name of the eks cluster that runs in this VPC"
 }
 
 ################################################################################
