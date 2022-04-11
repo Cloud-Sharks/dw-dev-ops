@@ -1,0 +1,194 @@
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+  VpcCidrBlock:
+    Type: String
+    Description: CIDR block of the created VPC
+
+  DefaultVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: ID of the default VPC
+
+  BastionImageId:
+    Type: AWS::EC2::Image::Id
+    Description: Image id for the bastion to use
+
+  BastionInstanceType:
+    Type: String
+    Description: Instance type of the bastion
+    Default: t2.nano
+
+Resources:
+  ################################################################################
+  # VPC
+  ################################################################################
+
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidrBlock
+      EnableDnsSupport: "true"
+      EnableDnsHostnames: "true"
+
+  VpcIGW:
+    Type: AWS::EC2::InternetGateway
+
+  IGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref VpcIGW
+      VpcId: !Ref Vpc
+
+  ################################################################################
+  # Subnets
+  ################################################################################
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.100.0/24
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref Vpc
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.101.0/24
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref Vpc
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref Vpc
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref Vpc
+
+  ################################################################################
+  # NAT Gateway
+  ################################################################################
+
+  NatEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEIP.AllocationId
+      SubnetId: !Ref PrivateSubnet1
+
+  ################################################################################
+  # Route tables
+  ################################################################################
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+
+  ################################################################################
+  # Routes
+  ################################################################################
+
+  NatGatewayRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      NatGatewayId: !Ref NatGateway
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+
+  InternetGatewayRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      GatewayId: !GetAtt VpcIGW.InternetGatewayId
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+
+  ################################################################################
+  # Route assosiations
+  ################################################################################
+
+  PublicAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  PrivateAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet1
+
+  PrivateAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet2
+
+  ################################################################################
+  # Peering Connection
+  ################################################################################
+
+  PeeringConnection:
+    Type: AWS::EC2::VPCPeeringConnection
+    Properties:
+      PeerVpcId: !Ref DefaultVpcId
+      VpcId: !Ref Vpc
+
+  ################################################################################
+  # Security Groups
+  ################################################################################
+
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Bastion Security Group
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  ################################################################################
+  # Bastion
+  ################################################################################
+
+  Bastion:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref BastionImageId
+      InstanceType: !Ref BastionInstanceType
+      KeyName: dw-us-east-1
+      SecurityGroupIds:
+        - !Ref BastionSecurityGroup
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: "DW Bastion"
