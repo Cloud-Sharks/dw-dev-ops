@@ -12,7 +12,8 @@ define cloudformation
 		--parameters \
 			ParameterKey=Environment,ParameterValue=dev \
 			ParameterKey=VpcCidrBlock,ParameterValue=10.0.0.1/16 \
-			ParameterKey=DefaultVpcId,ParameterValue=$$DEFAULT_VPC_ID
+			ParameterKey=DefaultVpcId,ParameterValue=$$DEFAULT_VPC_ID \
+			ParameterKey=BastionImageId,ParameterValue=ami-04505e74c0741db8d
 endef
 
 create:

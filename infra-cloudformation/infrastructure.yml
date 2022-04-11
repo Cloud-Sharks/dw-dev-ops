@@ -14,11 +14,14 @@ Parameters:
     Type: AWS::EC2::VPC::Id
     Description: ID of the default VPC
 
-  # PublicSubnetCidrBlocks:
-  #   Type: CommaDelimitedList
+  BastionImageId:
+    Type: AWS::EC2::Image::Id
+    Description: Image id for the bastion to use
 
-  # PrivateSubnetCidrBlocks:
-  #   Type: CommaDelimitedList
+  BastionInstanceType:
+    Type: String
+    Description: Instance type of the bastion
+    Default: t2.nano
 
 Resources:
   ################################################################################
@@ -157,3 +160,35 @@ Resources:
     Properties:
       PeerVpcId: !Ref DefaultVpcId
       VpcId: !Ref Vpc
+
+  ################################################################################
+  # Security Groups
+  ################################################################################
+
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Bastion Security Group
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  ################################################################################
+  # Bastion
+  ################################################################################
+
+  Bastion:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref BastionImageId
+      InstanceType: !Ref BastionInstanceType
+      KeyName: dw-us-east-1
+      SecurityGroupIds:
+        - !Ref BastionSecurityGroup
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: "DW Bastion"
