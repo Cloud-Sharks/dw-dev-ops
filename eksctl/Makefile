@@ -9,11 +9,7 @@ create_cluster:
 
 	PUBLIC_SUBNETS=`cat tfoutput.json | jq -r .public_subnet_ids[] | xargs echo | sed 's: :,:g'`
 	PRIVATE_SUBNETS=`cat tfoutput.json | jq -r .private_subnet_ids[] | xargs echo | sed 's: :,:g'`
-	ALL_SUBNETS=`cat tfoutput.json | jq -r '.public_subnet_ids[], .private_subnet_ids[]'`
 	rm tfoutput.json
-
-# Check if the subnets are valid
-	aws ec2 describe-subnets --no-paginate --output text --subnet-ids $$ALL_SUBNETS | cat || exit 1
 
 	eksctl create cluster \
 		--name ${clusterName} \
