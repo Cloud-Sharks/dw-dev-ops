@@ -5,12 +5,11 @@ install_services: add_helm_repos create_service_accounts install_load_balancer i
 
 .ONESHELL:
 create_cluster:
-	BUCKET_NAME=dw-infra-bucket
-	aws s3api get-object --bucket $$BUCKET_NAME --key terraform/tfoutput.json tfoutput.json || exit 1
+	aws secretsmanager get-secret-value --secret-id dw-tf-output --query "SecretString" >> tfoutput.json || exit 1
 
-	PUBLIC_SUBNETS=`cat tfoutput.json | jq -r .public_subnet_ids.value[] | xargs echo | sed 's: :,:g'`
-	PRIVATE_SUBNETS=`cat tfoutput.json | jq -r .private_subnet_ids.value[] | xargs echo | sed 's: :,:g'`
-	ALL_SUBNETS=`cat tfoutput.json | jq -r '.public_subnet_ids.value[], .private_subnet_ids.value[]'`
+	PUBLIC_SUBNETS=`cat tfoutput.json | jq -r .public_subnet_ids[] | xargs echo | sed 's: :,:g'`
+	PRIVATE_SUBNETS=`cat tfoutput.json | jq -r .private_subnet_ids[] | xargs echo | sed 's: :,:g'`
+	ALL_SUBNETS=`cat tfoutput.json | jq -r '.public_subnet_ids[], .private_subnet_ids[]'`
 	rm tfoutput.json
 
 # Check if the subnets are valid
