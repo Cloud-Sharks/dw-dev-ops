@@ -156,17 +156,15 @@ def updateService(serviceName) {
     def config = getAwsConfig()
     def devopsDir = 'devops'
     def repoUrl = config['devopsRepoUrl']
-    def kubernetesPath = config['kubernetesEksPath']
 
     sh "rm -rf ${devopsDir}; git clone ${repoUrl} ${devopsDir}"
 
-    dir("${devopsDir}/${kubernetesPath}") {
+    dir("${devopsDir}/kubernetes/eks") {
       def microserviceEnv = config['s3microserviceEnvPath']
-      def bucketName = getBucketName(config['s3BucketPrefix'])
 
       updateKubeconfigFile()
 
-      sh("aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env")
+      sh("aws s3api get-object --bucket dw-infra-bucket --key ${microserviceEnv} .env")
       sh "make upgrade_${serviceName} || make install_${serviceName}"
     }
 
@@ -184,26 +182,19 @@ def createCluster() {
     def config = getAwsConfig()
     def devopsDir = 'devops'
     def repoUrl = config['devopsRepoUrl']
-    def eksCtlPath = config['eksctlPath']
-    def bucketName = getBucketName(config['s3BucketPrefix'])
+    def bucketName = 'dw-infra-bucket'
 
     sh "rm -rf ${devopsDir}; git clone ${repoUrl} ${devopsDir}"
 
-    dir("${devopsDir}/${eksCtlPath}") {
-      def eksctlEnv = config['s3eksctlEnvPath']
-
-      sh "aws s3api get-object --bucket ${bucketName} --key ${eksctlEnv} .env"
+    dir("${devopsDir}/eksctl") {
+      sh 'aws s3api get-object --bucket ${bucketName} --key env/.eksctl.env .env'
       sh 'make init'
     }
 
-    def kubernetesPath = config['kubernetesEksPath']
-
-    dir("${devopsDir}/${kubernetesPath}") {
-      def microserviceEnv = config['s3microserviceEnvPath']
-
+    dir("${devopsDir}/kubernetes/eks") {
       updateKubeconfigFile()
 
-      sh("aws s3api get-object --bucket ${bucketName} --key ${microserviceEnv} .env")
+      sh("aws s3api get-object --bucket ${bucketName} --key env/.microservice.env .env")
       sh 'make init'
     }
 
@@ -237,10 +228,6 @@ def updateKubeconfigFile() {
   try { sh 'rm ~/.kube/config' } catch (err) { }
   bash(clusterContextCmd)
   sh 'chmod 700 ~/.kube/config'
-}
-
-def getBucketName(bucketPrefix) {
-  return bash($/aws s3 ls | grep -oP '\b${bucketPrefix}.+?\b'/$)
 }
 
 // Extracts the service name from the git url
