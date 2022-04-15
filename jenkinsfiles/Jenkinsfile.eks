@@ -169,7 +169,7 @@ def updateService(serviceName) {
     def devopsDir = 'devops'
     def region = readJSON(text: TF_JSON)['region']
 
-    checkoutDevRepo(devopsDir)
+    checkoutDevops(devopsDir)
 
     dir("${devopsDir}/kubernetes/eks") {
       updateKubeconfigFile()
@@ -193,7 +193,7 @@ def createCluster() {
     def bucketName = 'dw-infra-bucket'
     def region = readJSON(text: TF_JSON)['region']
 
-    checkoutDevRepo(devopsDir)
+    checkoutDevops(devopsDir)
 
     dir("${devopsDir}/eksctl") {
       sh "aws s3api get-object --region ${region} --bucket ${bucketName} --key env/.eksctl.env .env"
@@ -211,7 +211,7 @@ def createCluster() {
   }
 }
 
-def checkoutDevRepo(targetDir) {
+def checkoutDevops(targetDir) {
   def jenkinsConfig = readJSON(text: JENKINS_JSON)
   def repoUrl = jenkinsConfig['devopsGitUrl']
   def branch = jenkinsConfig['devopsBranch']
