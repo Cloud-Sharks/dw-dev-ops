@@ -13,6 +13,7 @@ create_cluster:
 
 	eksctl create cluster \
 		--name ${clusterName} \
+		--region ${region}
 		--vpc-public-subnets=$$PUBLIC_SUBNETS \
 		--vpc-private-subnets=$$PRIVATE_SUBNETS \
 		--without-nodegroup
