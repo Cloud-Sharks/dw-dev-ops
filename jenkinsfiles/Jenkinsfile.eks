@@ -107,14 +107,18 @@ pipeline {
         script {
           def clusterName = readJSON(text: TF_JSON)['eks_cluster_name']
 
-          if (clusterExists(clusterName)) {
-            echo 'CLUSTER EXISTS'
-            updateService(serviceName)
-            return
+          if (clusterExists(clusterName) == false) {
+            lock('dw-eks-lock') {
+              if (clusterExists(clusterName) == false) {
+                echo 'CLUSTER DOES NOT EXIST'
+                createCluster()
+                return
+              }
+            }
           }
 
-          echo 'CLUSTER DOES NOT EXIST'
-          createCluster()
+          echo 'CLUSTER EXISTS'
+          updateService(serviceName)
         }
       }
     }
