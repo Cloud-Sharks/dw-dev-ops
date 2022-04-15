@@ -18,7 +18,7 @@ create_cluster:
 		--vpc-private-subnets=$$PRIVATE_SUBNETS \
 		--without-nodegroup
 
-	eksctl utils update-cluster-logging --cluster ${clusterName} --enable-types all --approve
+	eksctl utils update-cluster-logging --region ${region} --cluster ${clusterName} --enable-types all --approve
 
 set_context:
 	eksctl utils write-kubeconfig \
