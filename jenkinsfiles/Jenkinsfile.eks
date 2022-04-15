@@ -20,14 +20,14 @@ pipeline {
     stage('Setup') {
       steps {
         script {
-          serviceName = getServiceName(GIT_URL)
-          TF_JSON = getTerraformSecret()
-
           configFileProvider([configFile(fileId: 'dw-jenkins-config', variable: 'JENKINS_CONFIG')]) {
             JENKINS_JSON = bash("cat ${JENKINS_CONFIG}")
           }
 
+          TF_JSON = getTerraformSecret()
           AWS_DEFAULT_REGION = readJSON(text: TF_JSON)['region']
+
+          serviceName = getServiceName(GIT_URL)
 
           sh 'git submodule init'
           sh 'git submodule update'
@@ -254,7 +254,7 @@ def getServiceName(gitRepositoryUrl) {
 }
 
 def checkServiceName(serviceName) {
-  def acceptable = ['bank', 'underwriter', 'user', 'transaction']
+  def acceptable = readJSON(text: JENKINS_JSON)['serviceNames']
 
   if (acceptable.contains(serviceName) == false) {
     error "Invalid service name: '${serviceName}'"
