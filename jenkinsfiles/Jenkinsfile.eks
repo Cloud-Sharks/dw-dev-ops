@@ -70,7 +70,6 @@ pipeline {
 
       steps {
         script {
-          echo "${JENKINS_JSON}"
           def ecrRepository = "dw-${serviceName}-microservice"
           def ecrUrl = readJSON(text: JENKINS_JSON)['ecrRepositoryUrl']
 
