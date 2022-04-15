@@ -5,7 +5,7 @@ install_services: add_helm_repos create_service_accounts install_load_balancer i
 
 .ONESHELL:
 create_cluster:
-	aws secretsmanager get-secret-value --secret-id dw-tf-output --query "SecretString" >> tfoutput.json || exit 1
+	aws secretsmanager get-secret-value --region ${region} --secret-id dw-tf-output --query "SecretString" >> tfoutput.json || exit 1
 
 	PUBLIC_SUBNETS=`cat tfoutput.json | jq -r .public_subnet_ids[] | xargs echo | sed 's: :,:g'`
 	PRIVATE_SUBNETS=`cat tfoutput.json | jq -r .private_subnet_ids[] | xargs echo | sed 's: :,:g'`
