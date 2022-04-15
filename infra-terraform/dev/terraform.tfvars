@@ -16,7 +16,5 @@ public_subnets = ["10.0.101.0/24", "10.0.102.0/24"]
 
 azs = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
-bucket_name = "dw-infra"
-
 key_name = "dw-us-east-1"
 
