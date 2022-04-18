@@ -7,9 +7,10 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "terraform-s3-dw"
-    key    = "tf-state-dev"
-    region = "us-east-2"
+    bucket  = "terraform-s3-dw"
+    key     = "tf-state-dev"
+    region  = "us-east-2"
+    profile = "dw-jenkins"
   }
 
   required_version = ">= 0.14.9"
