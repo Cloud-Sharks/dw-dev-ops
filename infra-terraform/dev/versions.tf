@@ -7,9 +7,9 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "terraform-s3-dw"
-    key     = "tf-state-dev"
-    region  = "us-east-2"
+    bucket  = "dw-infra-bucket"
+    key     = "terraform/state/tf-state-dev"
+    region  = "us-east-1"
     profile = "dw-jenkins"
   }
 
