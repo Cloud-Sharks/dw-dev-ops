@@ -39,19 +39,17 @@ module "security_groups" {
   tags   = local.global_tags
 }
 
-module "s3" {
-  source      = "../_modules/s3"
-  bucket_name = var.bucket_name
-  file_paths  = var.s3_files
+module "secrets" {
+  source      = "../_modules/secrets"
   environment = var.environment
   tags        = local.global_tags
-}
-
-module "secrets" {
-  source       = "../_modules/secrets"
-  file_secrets = var.file_secrets
-  environment  = var.environment
-  tags         = local.global_tags
+  vpc_secrets = jsonencode({
+    vpc_id             = module.vpc.vpc_id,
+    public_subnet_ids  = module.vpc.public_subnet_ids,
+    private_subnet_ids = module.vpc.private_subnet_ids,
+    region             = var.region,
+    eks_cluster_name   = var.eks_cluster_name
+  })
 }
 
 module "bastion" {

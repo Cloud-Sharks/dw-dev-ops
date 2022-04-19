@@ -5,24 +5,20 @@ install_services: add_helm_repos create_service_accounts install_load_balancer i
 
 .ONESHELL:
 create_cluster:
-	BUCKET_NAME=dw-infra-bucket
-	aws s3api get-object --bucket $$BUCKET_NAME --key terraform/tfoutput.json tfoutput.json || exit 1
+	aws secretsmanager get-secret-value --region ${region} --secret-id dw-tf-output --query "SecretString" --output text > tfoutput.json || exit 1
 
-	PUBLIC_SUBNETS=`cat tfoutput.json | jq -r .public_subnet_ids.value[] | xargs echo | sed 's: :,:g'`
-	PRIVATE_SUBNETS=`cat tfoutput.json | jq -r .private_subnet_ids.value[] | xargs echo | sed 's: :,:g'`
-	ALL_SUBNETS=`cat tfoutput.json | jq -r '.public_subnet_ids.value[], .private_subnet_ids.value[]'`
+	PUBLIC_SUBNETS=`cat tfoutput.json | jq -r .public_subnet_ids[] | xargs echo | sed 's: :,:g'`
+	PRIVATE_SUBNETS=`cat tfoutput.json | jq -r .private_subnet_ids[] | xargs echo | sed 's: :,:g'`
 	rm tfoutput.json
-
-# Check if the subnets are valid
-	aws ec2 describe-subnets --no-paginate --output text --subnet-ids $$ALL_SUBNETS | cat || exit 1
 
 	eksctl create cluster \
 		--name ${clusterName} \
+		--region ${region} \
 		--vpc-public-subnets=$$PUBLIC_SUBNETS \
 		--vpc-private-subnets=$$PRIVATE_SUBNETS \
 		--without-nodegroup
 
-	eksctl utils update-cluster-logging --cluster ${clusterName} --enable-types all --approve
+	eksctl utils update-cluster-logging --region ${region} --cluster ${clusterName} --enable-types all --approve
 
 set_context:
 	eksctl utils write-kubeconfig \
