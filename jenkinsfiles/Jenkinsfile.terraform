@@ -1,3 +1,5 @@
+def noChanges = false
+
 pipeline {
   agent any
 
@@ -10,11 +12,24 @@ pipeline {
 
     stage('Plan') {
       steps {
-        sh 'terraform -chdir=infra-terraform/dev plan -out planfile'
+        script {
+          def planCmd = 'terraform -chdir=infra-terraform/dev plan -out planfile -detailed-exitcode'
+          def statusCode = sh(script: planCmd, returnStatus: true)
+
+          if (statusCode == 0) {
+            noChanges = true
+          }
+        }
       }
     }
 
     stage('Apply') {
+      when {
+        expression {
+          noChanges == false
+        }
+      }
+
       steps {
         sh 'terraform -chdir=infra-terraform/dev apply planfile'
       }
