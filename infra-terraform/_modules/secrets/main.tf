@@ -1,20 +1,10 @@
 resource "aws_secretsmanager_secret" "secret" {
-  for_each = {
-    for index, secret in var.file_secrets :
-    index => secret
-  }
-
-  name                    = each.value.key
-  recovery_window_in_days = 0
+  name                    = "dw-tf-output"
   tags                    = var.tags
+  recovery_window_in_days = 0
 }
 
-resource "aws_secretsmanager_secret_version" "secret" {
-  for_each = {
-    for index, secret in var.file_secrets :
-    index => secret
-  }
-
-  secret_id     = aws_secretsmanager_secret.secret[each.key].id
-  secret_string = file(each.value.path)
+resource "aws_secretsmanager_secret_version" "secret_version" {
+  secret_id     = aws_secretsmanager_secret.secret.id
+  secret_string = var.vpc_secrets
 }

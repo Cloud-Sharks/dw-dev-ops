@@ -44,7 +44,7 @@ variable "public_subnets" {
 
 variable "eks_cluster_name" {
   type        = string
-  description = "Name of the eks cluster"
+  description = "Name of the eks cluster that runs in this VPC"
 }
 
 ################################################################################
@@ -56,26 +56,3 @@ variable "key_name" {
   description = "Name of the keypair to use with the created instance"
 }
 
-################################################################################
-# S3
-################################################################################
-variable "bucket_name" {
-  type        = string
-  description = "Name of the S3 bucket"
-}
-
-variable "s3_files" {
-  type        = list(string)
-  description = "Key is the key that is used by S3 and path is file path to store under that key"
-}
-
-################################################################################
-# Secrets
-################################################################################
-variable "file_secrets" {
-  type = list(object({
-    key  = string
-    path = string
-  }))
-  description = "Secret key and file path"
-}

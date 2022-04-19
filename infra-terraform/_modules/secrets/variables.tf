@@ -8,10 +8,7 @@ variable "tags" {
   default = {}
 }
 
-variable "file_secrets" {
-  type = list(object({
-    key  = string
-    path = string
-  }))
-  description = "Secret key and file path"
+variable "vpc_secrets" {
+  type        = string
+  description = "Vpc structure"
 }
