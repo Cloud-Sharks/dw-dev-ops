@@ -11,5 +11,5 @@
 
 - Run `kustomize build . | kubectl apply -f -` to apply services
   - Might have to run it twice if you get an error
-- Run `kubectl get secret dw-awx-admin-password -o jsonpath="{.data.password}" | base64 --decode` to get the admin password
+- Run `kubectl get secret -n awx dw-awx-admin-password -o jsonpath="{.data.password}" | base64 --decode` to get the admin password
 - Run `minikube service dw-awx-service --url -n awx` to get the url of the service and login with the password

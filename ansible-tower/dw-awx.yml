@@ -1,3 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dw-awx-admin-password
+  namespace: awx
+stringData:
+  password: admin
 ---
 apiVersion: awx.ansible.com/v1beta1
 kind: AWX
