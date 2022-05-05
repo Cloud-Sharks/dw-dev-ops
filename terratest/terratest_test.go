@@ -3,26 +3,51 @@ package terratest
 import (
 	"testing"
 
+	"github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTerraformHelloWorldExample(t *testing.T) {
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		// Set the path to the Terraform code that will be tested.
-		TerraformDir: "../infra-terraform/dev",
+var terraformOptions *terraform.Options
+
+func init() {
+	terraformDir := "../infra-terraform/dev"
+
+	tfOptions := terraform.WithDefaultRetryableErrors(&testing.T{}, &terraform.Options{
+		TerraformDir: terraformDir,
 	})
+	
+	terraformOptions = tfOptions
 
-	// Construct the terraform options with default retryable errors to handle the most common
-	// retryable errors in terraform testing.
-
-	// Clean up resources with "terraform destroy" at the end of the test.
-	defer terraform.Destroy(t, terraformOptions)
-
-	// Run "terraform init" and "terraform apply". Fail the test if there are any errors.
-	terraform.InitAndApply(t, terraformOptions)
-
-	// Run `terraform output` to get the values of output variables and check they have the expected values.
-	output := terraform.Output(t, terraformOptions, "hello_world")
-	assert.Equal(t, "Hello, World!", output)
+	terraform.InitAndApply(&testing.T{}, tfOptions)
 }
+
+func TestSubnetCount(t *testing.T) {
+	vpcId := terraform.Output(t, terraformOptions, "vpc_id")
+	region := terraform.Output(t, terraformOptions, "region")
+	subnets := aws.GetSubnetsForVpc(t, vpcId, region)
+
+	expectedSubnetCount := 4
+	actualSubnetCount := len(subnets)
+
+	assert.Equal(t, expectedSubnetCount, actualSubnetCount)
+}
+
+func TestPublicSubnets(t *testing.T) {
+	region := terraform.Output(t, terraformOptions, "region")
+	publicSubnets := terraform.OutputList(t, terraformOptions, "public_subnet_ids")
+
+	for _, subnetId := range publicSubnets {
+		assert.True(t, aws.IsPublicSubnet(t, subnetId, region))
+	}
+}
+
+func TestPrivateSubnet(t *testing.T) {
+		region := terraform.Output(t, terraformOptions, "region")
+	publicSubnets := terraform.OutputList(t, terraformOptions, "private_subnet_ids")
+
+	for _, subnetId := range publicSubnets {
+		assert.False(t, aws.IsPublicSubnet(t, subnetId, region))
+	}
+}
+
