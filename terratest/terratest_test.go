@@ -16,7 +16,7 @@ func init() {
 	tfOptions := terraform.WithDefaultRetryableErrors(&testing.T{}, &terraform.Options{
 		TerraformDir: terraformDir,
 	})
-	
+
 	terraformOptions = tfOptions
 
 	terraform.InitAndApply(&testing.T{}, tfOptions)
