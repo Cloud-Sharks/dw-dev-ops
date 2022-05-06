@@ -1,12 +1,25 @@
-def noChanges = false
+def stateChanged = false
 
 pipeline {
   agent any
+
+  tools {
+    go 'Go 1.18.1'
+    terraform 'Terraform'
+  }
 
   stages {
     stage('Init') {
       steps {
         sh 'terraform -chdir=infra-terraform/dev init'
+      }
+    }
+
+    stage('Lint') {
+      steps {
+        dir('infra-terraform/dev') {
+          sh 'tflint'
+        }
       }
     }
 
@@ -16,8 +29,8 @@ pipeline {
           def planCmd = 'terraform -chdir=infra-terraform/dev plan -out planfile -detailed-exitcode'
           def statusCode = sh(script: planCmd, returnStatus: true)
 
-          if (statusCode == 0) {
-            noChanges = true
+          if (statusCode == 2) {
+            stateChanged = true
           }
         }
       }
@@ -26,12 +39,22 @@ pipeline {
     stage('Apply') {
       when {
         expression {
-          noChanges == false
+          stateChanged == true
         }
       }
 
       steps {
         sh 'terraform -chdir=infra-terraform/dev apply planfile'
+      }
+    }
+
+    stage('Terratest') {
+      steps {
+        script {
+          dir('terratest') {
+            sh 'go test'
+          }
+        }
       }
     }
   }
