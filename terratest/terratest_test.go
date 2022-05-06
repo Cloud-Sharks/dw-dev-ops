@@ -46,7 +46,7 @@ func TestPublicSubnets(t *testing.T) {
 }
 
 func TestPrivateSubnet(t *testing.T) {
-		region := terraform.Output(t, terraformOptions, "region")
+	region := terraform.Output(t, terraformOptions, "region")
 	publicSubnets := terraform.OutputList(t, terraformOptions, "private_subnet_ids")
 
 	for _, subnetId := range publicSubnets {
