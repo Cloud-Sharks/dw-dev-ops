@@ -5,12 +5,21 @@ pipeline {
 
   tools {
     go 'Go 1.18.1'
+    terraform 'Terraform'
   }
 
   stages {
     stage('Init') {
       steps {
         sh 'terraform -chdir=infra-terraform/dev init'
+      }
+    }
+
+    stage('Lint') {
+      steps {
+        dir('infra-terraform/dev') {
+          sh 'tflint'
+        }
       }
     }
 
