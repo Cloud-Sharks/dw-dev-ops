@@ -1,6 +1,5 @@
 - name: Get EC2 Bastion instance
   hosts: localhost
-  remote_user: root
   tasks:
     - name: Register instance
       amazon.aws.ec2_instance_info:
