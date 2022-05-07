@@ -1,4 +1,4 @@
-- import_playbook: roles/common/tasks/register-bastion.yml
+- import_playbook: tasks/register-bastion.yml
 
 - import_playbook: roles/common/tasks/init-eks.yml
   vars:
