@@ -1,56 +1,46 @@
-- name: Init EKS Cluster
-  hosts: bastion
-  become_user: ubuntu
-  remote_user: ubuntu
-  tasks:
-    - name: Copy Repo
-      shell:
-        chdir: ~
-        cmd: rm -rf devops; git clone {{ git_repo }} devops
+- name: Copy Repo
+  shell:
+    chdir: ~
+    cmd: rm -rf devops; git clone {{ git_repo }} devops
 
-    - name: Checkout branch
-      shell:
-        chdir: ~/devops
-        cmd: git checkout {{ branch }}
+- name: Checkout branch
+  shell:
+    chdir: /tmp/devops
+    cmd: git checkout {{ branch }}
 
-    - name: Get eksctl makefile env
-      environment: "{{ aws_environment }}"
-      shell:
-        chdir: ~/devops/eksctl
-        cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.eksctl.env  .env
+- name: Get eksctl makefile env
+  environment: "{{ aws_environment }}"
+  shell:
+    chdir: /tmp/devops/eksctl
+    cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.eksctl.env  .env
 
-    - name: Add policies
-      environment: "{{ aws_environment }}"
-      ignore_errors: yes
-      shell:
-        chdir: ~/devops/eksctl
-        cmd: make create_policies
+- name: Add policies
+  environment: "{{ aws_environment }}"
+  ignore_errors: yes
+  shell:
+    chdir: /tmp/devops/eksctl
+    cmd: make create_policies
 
-    - name: Init cluster
-      environment: "{{ aws_environment }}"
-      shell:
-        chdir: ~/devops/eksctl
-        cmd: make init
+- name: Init cluster
+  environment: "{{ aws_environment }}"
+  shell:
+    chdir: /tmp/devops/eksctl
+    cmd: make init
+
+- name: Set Context
+  environment: "{{ aws_environment }}"
+  shell:
+    chdir: /tmp/devops/eksctl
+    cmd: make set_context
+
+- name: Get microservice env
+  environment: "{{ aws_environment }}"
+  shell:
+    chdir: /tmp/devops/kubernetes/eks
+    cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.microservice.env  .env
 
 - name: Install services
-  hosts: bastion
-  become_user: ubuntu
-  remote_user: ubuntu
-  tasks:
-    - name: Set Context
-      environment: "{{ aws_environment }}"
-      shell:
-        chdir: ~/devops/eksctl
-        cmd: make set_context
-
-    - name: Get microservice env
-      environment: "{{ aws_environment }}"
-      shell:
-        chdir: ~/devops/kubernetes/eks
-        cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.microservice.env  .env
-
-    - name: Install services
-      environment: "{{ aws_environment }}"
-      shell:
-        chdir: ~/devops/kubernetes/eks
-        cmd: make init
+  environment: "{{ aws_environment }}"
+  shell:
+    chdir: /tmp/devops/kubernetes/eks
+    cmd: make init
