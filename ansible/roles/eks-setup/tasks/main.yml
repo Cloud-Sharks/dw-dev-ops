@@ -1,6 +1,6 @@
 - name: Copy Repo
   shell:
-    chdir: ~
+    chdir: /tmp
     cmd: rm -rf devops; git clone {{ git_repo }} devops
 
 - name: Checkout branch
