@@ -3,6 +3,7 @@
 - name: Initialize eks cluster
   hosts: bastion
   remote_user: ubuntu
+  become: yes
   roles:
     - eks-setup
   vars_files:
