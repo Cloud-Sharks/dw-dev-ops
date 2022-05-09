@@ -2,7 +2,7 @@
   hosts: localhost
   tasks:
     - name: Register instance
-      amazon.aws.ec2_instance_info:
+      ec2_instance_info:
         filters:
           "tag:Name": "DW Bastion"
           "instance-state-name": "running"
