@@ -14,7 +14,6 @@
       - mysql-client-core-8.0
       - jq
       - unzip
-      - awscli
       - make
 
 - name: Install helm
