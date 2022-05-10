@@ -8,4 +8,4 @@
   become: yes
   vars:
     user_name: ubuntu
-    ansible_ssh_private_key_file: files/dw-us-east-1.pem
+    ansible_ssh_private_key_file: ./files/dw-us-east-1.pem
