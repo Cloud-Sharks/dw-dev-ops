@@ -3,6 +3,7 @@
   tasks:
     - name: Register instance
       ec2_instance_info:
+        region: us-east-1
         filters:
           "tag:Name": "DW Bastion"
           "instance-state-name": "running"
