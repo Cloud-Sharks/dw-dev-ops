@@ -23,3 +23,6 @@
         dest: ../files/dw-us-east-1.pem
         mode: get
         overwrite: different
+
+    - name: Change pem permissons
+      shell: chmod 400 ../files/dw-us-east-1.pem
