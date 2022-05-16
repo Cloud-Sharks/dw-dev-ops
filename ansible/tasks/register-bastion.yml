@@ -1,9 +1,9 @@
 - name: Get EC2 Bastion instance
   hosts: localhost
-  remote_user: root
   tasks:
     - name: Register instance
-      amazon.aws.ec2_instance_info:
+      ec2_instance_info:
+        region: us-east-1
         filters:
           "tag:Name": "DW Bastion"
           "instance-state-name": "running"
@@ -15,3 +15,14 @@
         hostname: "{{ item.public_ip_address }}"
         groupname: bastion
       loop: "{{ bastion.instances }}"
+
+    - name: Download pem key
+      aws_s3:
+        bucket: dw-infra-bucket
+        object: /keys/dw-us-east-1.pem
+        dest: ../files/dw-us-east-1.pem
+        mode: get
+        overwrite: different
+
+    - name: Change pem permissons
+      shell: chmod 400 ../files/dw-us-east-1.pem

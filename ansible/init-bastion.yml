@@ -1,5 +1,11 @@
-- import_playbook: roles/common/tasks/register-bastion.yml
+- import_playbook: tasks/register-bastion.yml
 
-- import_playbook: roles/common/tasks/configure-bastion.yml
+- name: Initialize bastion server
+  hosts: bastion
+  roles:
+    - bastion
+  remote_user: ubuntu
+  become: yes
   vars:
-    ansible_ssh_private_key_file: roles/common/files/dw-us-east-1.pem
+    user_name: ubuntu
+    ansible_ssh_private_key_file: ./files/dw-us-east-1.pem
