@@ -56,6 +56,10 @@ pipeline {
           }
         }
       }
+
+      steps {
+        sh 'terraform -chdir=infra-terraform/dev apply planfile'
+      }
     }
   }
 }
