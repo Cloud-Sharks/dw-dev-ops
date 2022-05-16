@@ -1,0 +1,39 @@
+- name: Set default editor to vim
+  blockinfile:
+    dest: /home/{{user_name}}/.bashrc
+    block: export EDITOR=vim
+    marker: "# {mark} - Ansible"
+    insertbefore: BOF
+    create: yes
+
+- name: Install tools
+  apt:
+    update_cache: yes
+    pkg:
+      - git
+      - mysql-client-core-8.0
+      - jq
+      - unzip
+      - make
+
+- name: Install helm
+  shell: |
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    chmod 700 get_helm.sh
+    ./get_helm.sh
+
+- name: Install eksctl
+  shell: |
+    curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+    sudo mv /tmp/eksctl /usr/local/bin
+
+- name: Install Kubectl
+  shell: |
+    curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl
+    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+- name: Install aws cli
+  shell: |
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
