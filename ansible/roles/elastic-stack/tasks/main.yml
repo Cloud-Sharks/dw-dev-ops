@@ -31,3 +31,8 @@
   ansible.builtin.systemd:
     name: kibana
     state: started
+
+- name: Start filebeat
+  ansible.builtin.systemd:
+    name: filebeat
+    state: started
