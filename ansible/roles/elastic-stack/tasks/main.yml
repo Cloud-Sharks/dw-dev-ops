@@ -51,20 +51,6 @@
 - name: Enable AWS filebeat module
   command: filebeat modules enable aws
 
-# - name: Configure filebeat.yml
-#   blockinfile:
-#     dest: /etc/filebeat/modules.d
-#     block: |
-#       - module: aws
-#         cloudwatch:
-#           enabled: true
-#           var.queue_url: https://sqs.us-east-1.amazonaws.com/862167864120/test-queue
-#           var.credential_profile_name: filebeat
-#           var.default_region: us-east-1
-#     marker: "#{mark} - Filebeat configuration"
-#     insertafter: EOF
-#     create: yes
-
 - name: Configure aws filebeat module
   copy:
     backup: true
