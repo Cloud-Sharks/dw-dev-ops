@@ -1,3 +1,19 @@
+- name: Install aws cli
+  shell: |
+    sudo apt install -y unzip
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+
+- name: Configure aws cli
+  ansible.builtin.expect:
+    command: aws configure --profile filebeat
+    responses:
+      "AWS Access Key ID.*": "{{aws_key}}"
+      "AWS Secret Access Key.*": "{{aws_secret}}"
+      "Default region name.*": "{{aws_region}}"
+      "Default output format": None
+
 - name: Install elastic stack
   shell: |
     wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
@@ -31,6 +47,35 @@
   ansible.builtin.systemd:
     name: kibana
     state: started
+
+- name: Enable AWS filebeat module
+  command: filebeat modules enable aws
+
+# - name: Configure filebeat.yml
+#   blockinfile:
+#     dest: /etc/filebeat/modules.d
+#     block: |
+#       - module: aws
+#         cloudwatch:
+#           enabled: true
+#           var.queue_url: https://sqs.us-east-1.amazonaws.com/862167864120/test-queue
+#           var.credential_profile_name: filebeat
+#           var.default_region: us-east-1
+#     marker: "#{mark} - Filebeat configuration"
+#     insertafter: EOF
+#     create: yes
+
+- name: Configure aws filebeat module
+  copy:
+    backup: true
+    remote_src: true
+    dest: /etc/filebeat/modules.d/aws.yml
+    content: |
+      - module: aws
+        cloudwatch:
+          enabled: true
+          var.queue_url: https://sqs.us-east-1.amazonaws.com/862167864120/test-queue
+          var.credential_profile_name: filebeat
 
 - name: Start filebeat
   ansible.builtin.systemd:
