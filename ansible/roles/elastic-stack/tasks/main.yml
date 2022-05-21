@@ -48,9 +48,6 @@
     name: kibana
     state: started
 
-- name: Enable AWS filebeat module
-  command: filebeat modules enable aws
-
 - name: Configure aws filebeat module
   copy:
     backup: true
@@ -62,6 +59,9 @@
           enabled: true
           var.queue_url: https://sqs.us-east-1.amazonaws.com/862167864120/test-queue
           var.credential_profile_name: filebeat
+
+- name: Enable AWS filebeat module
+  command: filebeat modules enable aws
 
 - name: Start filebeat
   ansible.builtin.systemd:
