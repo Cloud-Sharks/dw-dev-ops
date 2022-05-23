@@ -61,7 +61,15 @@
         start_position: beginning
   loop: "{{log_arns}}"
 
+- name: Wait for kibana
+  wait_for:
+    port: "{{kibana_port}}"
+    delay: 30
+
 - name: Start filebeat
   ansible.builtin.systemd:
     name: filebeat
     state: started
+
+- name: Setup filebeat
+  command: filebeat setup
