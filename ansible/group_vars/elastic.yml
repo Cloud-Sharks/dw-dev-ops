@@ -1,0 +1,8 @@
+filebeat_aws_profile: filebeat
+scan_frequency: 15s
+
+log_arns:
+  - arn:aws:logs:us-east-1:{{account_id}}:log-group:/aws/containerinsights/dw-eks/application:*
+  - arn:aws:logs:us-east-1:{{account_id}}:log-group:/aws/containerinsights/dw-eks/dataplane:*
+  - arn:aws:logs:us-east-1:{{account_id}}:log-group:/aws/containerinsights/dw-eks/host:*
+  - arn:aws:logs:us-east-1:{{account_id}}:log-group:/aws/eks/dw-eks/cluster:*

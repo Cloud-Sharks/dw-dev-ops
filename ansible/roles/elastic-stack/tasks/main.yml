@@ -7,7 +7,7 @@
 
 - name: Configure aws cli
   ansible.builtin.expect:
-    command: aws configure --profile filebeat
+    command: aws configure --profile {{filebeat_aws_profile}}
     responses:
       "AWS Access Key ID.*": "{{aws_key}}"
       "AWS Secret Access Key.*": "{{aws_secret}}"
@@ -48,20 +48,18 @@
     name: kibana
     state: started
 
-- name: Configure aws filebeat module
-  copy:
-    backup: true
-    remote_src: true
-    dest: /etc/filebeat/modules.d/aws.yml
-    content: |
-      - module: aws
-        cloudwatch:
-          enabled: true
-          var.queue_url: https://sqs.us-east-1.amazonaws.com/862167864120/test-queue
-          var.credential_profile_name: filebeat
-
-- name: Enable AWS filebeat module
-  command: filebeat modules enable aws
+- name: Add cloudwatch input
+  blockinfile:
+    insertafter: "filebeat.inputs:"
+    dest: /etc/filebeat/filebeat.yml
+    marker: "# {mark} - Ansible"
+    block: |
+      - type: aws-cloudwatch
+        log_group_arn: {{item}}
+        scan_frequency: {{scan_frequency}}
+        credential_profile_name: {{filebeat_aws_profile}}
+        start_position: beginning
+  loop: "{{log_arns}}"
 
 - name: Start filebeat
   ansible.builtin.systemd:
