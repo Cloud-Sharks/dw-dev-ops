@@ -140,3 +140,5 @@ install_fluentbit:
 
 	kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/fluent-bit/fluent-bit.yaml
 
+update_env:
+	aws s3 cp .env s3://dw-infra-bucket/env/.eksctl.env
