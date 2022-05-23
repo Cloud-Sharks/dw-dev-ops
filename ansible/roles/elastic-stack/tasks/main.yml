@@ -52,7 +52,7 @@
   blockinfile:
     insertafter: "filebeat.inputs:"
     dest: /etc/filebeat/filebeat.yml
-    marker: "# {mark} - Ansible"
+    marker: "# {mark} - {{item}}"
     block: |
       - type: aws-cloudwatch
         log_group_arn: {{item}}
