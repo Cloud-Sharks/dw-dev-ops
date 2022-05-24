@@ -32,8 +32,8 @@ create_node_group:
 		--name ${publicNgName} \
 		--cluster ${clusterName} \
 		--region ${region} \
-		--node-type t3a.medium \
-		--nodes 3 \
+		--node-type t2.medium \
+		--nodes 2 \
 		--nodes-min 1 \
 		--nodes-max 4 \
 		--full-ecr-access \
