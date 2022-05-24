@@ -7,12 +7,22 @@
 
 - name: Configure aws cli
   ansible.builtin.expect:
-    command: aws configure --profile {{filebeat_aws_profile}}
+    command: aws configure
     responses:
       "AWS Access Key ID.*": "{{aws_key}}"
       "AWS Secret Access Key.*": "{{aws_secret}}"
       "Default region name.*": "{{aws_region}}"
       "Default output format": None
+
+- name: Export aws env
+  blockinfile:
+    insertafter: EOF
+    dest: /root/.bashrc
+    marker: "# {mark}"
+    block: |
+      export AWS_ACCESS_KEY_ID={{aws_key}}
+      export AWS_SECRET_ACCESS_KEY={{aws_secret}}
+      export AWS_DEFAULT_REGION={{aws_region}}
 
 - name: Install elastic stack
   shell: |
@@ -20,25 +30,17 @@
     sudo apt-get install -y apt-transport-https
     echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
     sudo apt-get update
-    sudo apt-get install -y elasticsearch kibana filebeat
-
-- name: Turn off elasticsearch SSL
-  lineinfile:
-    path: /etc/elasticsearch/elasticsearch.yml
-    regexp: "xpack.security.enabled:\\s+true"
-    line: "xpack.security.enabled: false"
-    backrefs: yes
-    firstmatch: yes
+    sudo apt-get install -y elasticsearch kibana
 
 - name: Change kibana server host
   lineinfile:
     path: /etc/kibana/kibana.yml
-    regexp: ".*server.host:.*"
+    regexp: "^[#\\s]*server.host:.*$"
     line: 'server.host: "0.0.0.0"'
     backrefs: yes
     firstmatch: yes
 
-- name: Start elastic search
+- name: Start elasticsearch
   ansible.builtin.systemd:
     name: elasticsearch
     state: started
@@ -48,28 +50,73 @@
     name: kibana
     state: started
 
-- name: Add cloudwatch input
-  blockinfile:
-    insertafter: "filebeat.inputs:"
-    dest: /etc/filebeat/filebeat.yml
-    marker: "# {{item}}"
-    block: |
-      - type: aws-cloudwatch
-        log_group_arn: {{item}}
-        scan_frequency: {{scan_frequency}}
-        credential_profile_name: {{filebeat_aws_profile}}
-        start_position: beginning
-  loop: "{{log_arns}}"
+- name: Set elastic user password
+  ansible.builtin.expect:
+    command: /usr/share/elasticsearch/bin/elasticsearch-reset-password -fsi -u elastic
+    responses:
+      "Please confirm that you would like to continue.*": "y"
+      "Enter password for.*": "{{elastic_password}}"
+      "Re-enter password for.*": "{{elastic_password}}"
 
 - name: Wait for kibana
   wait_for:
     port: "{{kibana_port}}"
     delay: 30
 
-- name: Start filebeat
-  ansible.builtin.systemd:
-    name: filebeat
-    state: started
+- name: Download functionbeat
+  shell:
+    cmd: |
+      curl -L -O https://artifacts.elastic.co/downloads/beats/functionbeat/functionbeat-8.2.0-linux-x86_64.tar.gz
+      tar xzvf functionbeat-8.2.0-linux-x86_64.tar.gz
+    chdir: /root
 
-- name: Setup filebeat
-  command: filebeat setup
+- name: Configure functionbeat.yml
+  copy:
+    backup: true
+    remote_src: true
+    dest: /root/functionbeat-8.2.0-linux-x86_64/functionbeat.yml
+    content: |
+      functionbeat.provider.aws.endpoint: "s3.amazonaws.com"
+      functionbeat.provider.aws.deploy_bucket: "dw-function-beat"
+      functionbeat.provider.aws.functions:
+        - name: cloudwatch
+          enabled: true
+          type: cloudwatch_logs
+          triggers:
+            - log_group_name: /aws/containerinsights/dw-eks/application
+      functionbeat.provider.aws.deploy_bucket: dw-function-beat
+
+      output.elasticsearch:
+        hosts: ["http://localhost:9200"]
+        username: "elastic"
+        password: "{{elastic_password}}"
+
+      setup.kibana:
+        host: "http://localhost:5601"
+
+- name: Functionbeat deploy
+  shell:
+    cmd: |
+      export AWS_ACCESS_KEY_ID={{aws_key}}
+      export AWS_SECRET_ACCESS_KEY={{aws_secret}}
+      export AWS_DEFAULT_REGION={{aws_region}}
+
+      ./functionbeat setup
+      ./functionbeat deploy cloudwatch
+    chdir: /root/functionbeat-8.2.0-linux-x86_64
+
+- name: Get kibana enrollment token
+  ansible.builtin.shell: /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+  register: enrollment_token
+
+- name: Get kibana verification code
+  ansible.builtin.shell: /usr/share/kibana/bin/kibana-verification-code
+  register: verification_code
+
+- name: Print kibana enrollment token
+  ansible.builtin.debug:
+    var: enrollment_token.stdout
+
+- name: Print kibana verification code
+  ansible.builtin.debug:
+    var: verification_code.stdout

@@ -1,5 +1,3 @@
-filebeat_aws_profile: filebeat
-scan_frequency: 5s
 kibana_port: 5601
 
 log_arns:
