@@ -1,4 +1,5 @@
 kibana_port: 5601
+eks_cluster_name: dw_eks
 
 log_arns:
   - arn:aws:logs:us-east-1:{{account_id}}:log-group:/aws/containerinsights/dw-eks/application:*
