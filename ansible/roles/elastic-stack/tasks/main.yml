@@ -1,5 +1,5 @@
 - name: Install aws cli
-  shell: |
+  shell: |-
     sudo apt install -y unzip
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip awscliv2.zip
@@ -14,23 +14,32 @@
       "Default region name.*": "{{aws_region}}"
       "Default output format": None
 
-- name: Export aws env
+- name: Export env
   blockinfile:
     insertafter: EOF
-    dest: /root/.bashrc
+    dest: /etc/profile
     marker: "# {mark}"
-    block: |
+    block: |-
+      export EDITOR="vim"
       export AWS_ACCESS_KEY_ID={{aws_key}}
       export AWS_SECRET_ACCESS_KEY={{aws_secret}}
       export AWS_DEFAULT_REGION={{aws_region}}
 
 - name: Install elastic stack
-  shell: |
+  shell: |-
     wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
     sudo apt-get install -y apt-transport-https
     echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
     sudo apt-get update
     sudo apt-get install -y elasticsearch kibana
+
+- name: Change elasticsearch network host
+  lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: "^[#\\s]*network.host:.*$"
+    line: "network.host: 0.0.0.0"
+    backrefs: yes
+    firstmatch: yes
 
 - name: Change kibana server host
   lineinfile:
@@ -61,21 +70,31 @@
 - name: Wait for kibana
   wait_for:
     port: "{{kibana_port}}"
-    delay: 30
+    delay: 15
 
 - name: Download functionbeat
   shell:
-    cmd: |
+    cmd: |-
       curl -L -O https://artifacts.elastic.co/downloads/beats/functionbeat/functionbeat-8.2.0-linux-x86_64.tar.gz
       tar xzvf functionbeat-8.2.0-linux-x86_64.tar.gz
     chdir: /root
+
+- name: Read elasticsearch cert
+  shell: cat /etc/elasticsearch/certs/http_ca.crt
+  register: elastic_cert
+
+- name: Get instance IP address
+  uri:
+    url: http://ifconfig.me/ip
+    return_content: yes
+  register: ip_response
 
 - name: Configure functionbeat.yml
   copy:
     backup: true
     remote_src: true
     dest: /root/functionbeat-8.2.0-linux-x86_64/functionbeat.yml
-    content: |
+    content: |-
       functionbeat.provider.aws.endpoint: "s3.amazonaws.com"
       functionbeat.provider.aws.deploy_bucket: "dw-function-beat"
       functionbeat.provider.aws.functions:
@@ -84,23 +103,23 @@
           type: cloudwatch_logs
           triggers:
             - log_group_name: /aws/containerinsights/dw-eks/application
-      functionbeat.provider.aws.deploy_bucket: dw-function-beat
+            - log_group_name: /aws/containerinsights/dw-eks/dataplane
+            - log_group_name: /aws/containerinsights/dw-eks/host
+            - log_group_name: /aws/eks/dw-eks/cluster
 
       output.elasticsearch:
-        hosts: ["http://localhost:9200"]
+        hosts: ["https://{{ip_response}}:9200"]
         username: "elastic"
         password: "{{elastic_password}}"
-
-      setup.kibana:
-        host: "http://localhost:5601"
+        ssl:
+          enabled: true
+          certificate_authorities: |-
+            {{ elastic_cert.stdout | indent(width=6) }}
 
 - name: Functionbeat deploy
   shell:
-    cmd: |
-      export AWS_ACCESS_KEY_ID={{aws_key}}
-      export AWS_SECRET_ACCESS_KEY={{aws_secret}}
-      export AWS_DEFAULT_REGION={{aws_region}}
-
+    cmd: |-
+      ./functionbeat remove cloudwatch > /dev/null
       ./functionbeat setup
       ./functionbeat deploy cloudwatch
     chdir: /root/functionbeat-8.2.0-linux-x86_64
@@ -112,6 +131,10 @@
 - name: Get kibana verification code
   ansible.builtin.shell: /usr/share/kibana/bin/kibana-verification-code
   register: verification_code
+
+- name: Print url of kibana
+  ansible.builtin.debug:
+    msg: "http://{{ip_response.content}}:5601"
 
 - name: Print kibana enrollment token
   ansible.builtin.debug:
