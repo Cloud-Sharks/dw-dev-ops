@@ -14,7 +14,7 @@
       "Default region name.*": "{{aws_region}}"
       "Default output format": None
 
-- name: Export env
+- name: Export global env
   blockinfile:
     insertafter: EOF
     dest: /etc/profile
@@ -41,7 +41,7 @@
     backrefs: yes
     firstmatch: yes
 
-- name: Change kibana server host
+- name: Change Kibana server host
   lineinfile:
     path: /etc/kibana/kibana.yml
     regexp: "^[#\\s]*server.host:.*$"
@@ -54,7 +54,7 @@
     name: elasticsearch
     state: started
 
-- name: Start kibana
+- name: Start Kibana
   ansible.builtin.systemd:
     name: kibana
     state: started
@@ -67,7 +67,7 @@
       "Enter password for.*": "{{elastic_password}}"
       "Re-enter password for.*": "{{elastic_password}}"
 
-- name: Wait for kibana
+- name: Wait for Kibana
   wait_for:
     port: "{{kibana_port}}"
     delay: 15
@@ -116,7 +116,7 @@
           certificate_authorities: |-
             {{ elastic_cert.stdout | indent(width=6) }}
 
-- name: Functionbeat deploy
+- name: Deploy Functionbeat
   shell:
     cmd: |-
       ./functionbeat remove cloudwatch > /dev/null
@@ -124,22 +124,22 @@
       ./functionbeat deploy cloudwatch
     chdir: /root/functionbeat-8.2.0-linux-x86_64
 
-- name: Get kibana enrollment token
+- name: Register Kibana enrollment token
   ansible.builtin.shell: /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
   register: enrollment_token
 
-- name: Get kibana verification code
+- name: Register Kibana verification code
   ansible.builtin.shell: /usr/share/kibana/bin/kibana-verification-code
   register: verification_code
 
-- name: Print url of kibana
+- name: Print Kibana url
   ansible.builtin.debug:
     msg: "http://{{ip_response.content}}:5601"
 
-- name: Print kibana enrollment token
+- name: Print Kibana enrollment token
   ansible.builtin.debug:
     var: enrollment_token.stdout
 
-- name: Print kibana verification code
+- name: Print Kibana verification code
   ansible.builtin.debug:
     var: verification_code.stdout
