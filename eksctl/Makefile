@@ -92,7 +92,7 @@ create_service_accounts:
 		--override-existing-serviceaccounts \
 		--approve
 
-# Fluentbit Service Account 
+# Fluentbit Service Account
 	eksctl create iamserviceaccount \
 		--cluster=${clusterName} \
 		--region=${region} \
@@ -120,15 +120,15 @@ install_ascp:
 .ONESHELL:
 install_fluentbit:
 	kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/cloudwatch-namespace.yaml
-	
+
 	ClusterName=${clusterName}
 	RegionName=${region}
 	FluentBitHttpPort='2020'
 	FluentBitReadFromHead='Off'
-	
+
 	[[ $$FluentBitReadFromHead = 'On' ]] && FluentBitReadFromTail='Off'|| FluentBitReadFromTail='On'
 	[[ -z $$FluentBitHttpPort ]] && FluentBitHttpServer='Off' || FluentBitHttpServer='On'
-	
+
 	kubectl create configmap fluent-bit-cluster-info \
 		-n amazon-cloudwatch \
 		--from-literal=cluster.name=$$ClusterName \
