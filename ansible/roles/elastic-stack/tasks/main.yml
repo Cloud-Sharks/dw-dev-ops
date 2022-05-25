@@ -67,11 +67,6 @@
       "Enter password for.*": "{{elastic_password}}"
       "Re-enter password for.*": "{{elastic_password}}"
 
-- name: Wait for Kibana
-  wait_for:
-    port: "{{kibana_port}}"
-    delay: 15
-
 - name: Download functionbeat
   shell:
     cmd: |-
@@ -91,7 +86,6 @@
 
 - name: Configure functionbeat.yml
   copy:
-    backup: true
     remote_src: true
     dest: /root/functionbeat-8.2.0-linux-x86_64/functionbeat.yml
     content: |-
@@ -108,7 +102,7 @@
             - log_group_name: /aws/eks/{{eks_cluster_name}}/cluster
 
       output.elasticsearch:
-        hosts: ["https://{{ip_response}}:9200"]
+        hosts: ["https://{{ip_response.content}}:9200"]
         username: "elastic"
         password: "{{elastic_password}}"
         ssl:
