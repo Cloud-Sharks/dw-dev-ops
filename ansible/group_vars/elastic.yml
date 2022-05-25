@@ -1,8 +1,2 @@
 kibana_port: 5601
-eks_cluster_name: dw_eks
-
-log_arns:
-  - arn:aws:logs:us-east-1:{{account_id}}:log-group:/aws/containerinsights/dw-eks/application:*
-  - arn:aws:logs:us-east-1:{{account_id}}:log-group:/aws/containerinsights/dw-eks/dataplane:*
-  - arn:aws:logs:us-east-1:{{account_id}}:log-group:/aws/containerinsights/dw-eks/host:*
-  - arn:aws:logs:us-east-1:{{account_id}}:log-group:/aws/eks/dw-eks/cluster:*
+eks_cluster_name: dw-eks
