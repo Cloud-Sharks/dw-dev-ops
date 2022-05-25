@@ -119,7 +119,7 @@ install_ascp:
 
 .ONESHELL:
 install_fluentbit:
-	kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/cloudwatch-namespace.yaml
+	kubectl apply -f yaml/fluentbit-ns.yml
 
 	ClusterName=${clusterName}
 	RegionName=${region}
@@ -138,7 +138,7 @@ install_fluentbit:
 		--from-literal=read.tail=$$FluentBitReadFromTail \
 		--from-literal=logs.region=$$RegionName
 
-	kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/fluent-bit/fluent-bit.yaml
+	kubectl apply -f yaml/fluentbit.yml
 
 update_env:
 	aws s3 cp .env s3://dw-infra-bucket/env/.eksctl.env
