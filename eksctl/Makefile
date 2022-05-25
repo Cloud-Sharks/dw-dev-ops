@@ -119,7 +119,7 @@ install_ascp:
 
 .ONESHELL:
 install_fluentbit:
-	kubectl apply -f yaml/fluentbit-ns.yml
+	kubectl apply -f yaml/amazon-cloudwatch-ns.yml
 
 	ClusterName=${clusterName}
 	RegionName=${region}
