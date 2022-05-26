@@ -78,6 +78,7 @@
     remote_src: true
     dest: /root/functionbeat-8.2.0-linux-x86_64/functionbeat.yml
     content: |-
+      setup.ilm.overwrite: true
       functionbeat.provider.aws.endpoint: "s3.amazonaws.com"
       functionbeat.provider.aws.deploy_bucket: "dw-function-beat"
       functionbeat.provider.aws.functions:
