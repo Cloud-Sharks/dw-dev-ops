@@ -1,0 +1,8 @@
+- import_playbook: tasks/register-elastic-stack.yml
+
+- name: Initialize elastic server
+  hosts: elastic
+  remote_user: ubuntu
+  become: yes
+  roles:
+    - elastic-stack

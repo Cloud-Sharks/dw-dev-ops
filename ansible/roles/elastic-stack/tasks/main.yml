@@ -1,0 +1,128 @@
+- name: Install aws cli
+  shell: |-
+    sudo apt install -y unzip
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+
+- name: Configure aws cli
+  ansible.builtin.expect:
+    command: aws configure
+    responses:
+      "AWS Access Key ID.*": "{{aws_key}}"
+      "AWS Secret Access Key.*": "{{aws_secret}}"
+      "Default region name.*": "{{aws_region}}"
+      "Default output format": "text"
+
+- name: Install elastic stack
+  shell: |-
+    wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+    sudo apt-get install -y apt-transport-https
+    echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
+    sudo apt-get update
+    sudo apt-get install -y elasticsearch kibana
+
+- name: Change elasticsearch network host
+  lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: "^[#\\s]*network.host:.*$"
+    line: "network.host: 0.0.0.0"
+    backrefs: yes
+    firstmatch: yes
+
+- name: Change Kibana server host
+  lineinfile:
+    path: /etc/kibana/kibana.yml
+    regexp: "^[#\\s]*server.host:.*$"
+    line: 'server.host: "0.0.0.0"'
+    backrefs: yes
+    firstmatch: yes
+
+- name: Start elasticsearch
+  ansible.builtin.systemd:
+    name: elasticsearch
+    state: started
+
+- name: Start Kibana
+  ansible.builtin.systemd:
+    name: kibana
+    state: started
+
+- name: Set elastic user password
+  ansible.builtin.expect:
+    command: /usr/share/elasticsearch/bin/elasticsearch-reset-password -fsi -u elastic
+    responses:
+      "Please confirm that you would like to continue.*": "y"
+      "Enter password for.*": "{{elastic_password}}"
+      "Re-enter password for.*": "{{elastic_password}}"
+
+- name: Download functionbeat
+  shell:
+    cmd: |-
+      curl -L -O https://artifacts.elastic.co/downloads/beats/functionbeat/functionbeat-8.2.0-linux-x86_64.tar.gz
+      tar xzvf functionbeat-8.2.0-linux-x86_64.tar.gz
+    chdir: /root
+
+- name: Read elasticsearch cert
+  shell: cat /etc/elasticsearch/certs/http_ca.crt
+  register: elastic_cert
+
+- name: Get instance IP address
+  uri:
+    url: http://ifconfig.me/ip
+    return_content: yes
+  register: ip_response
+
+- name: Configure functionbeat.yml
+  copy:
+    remote_src: true
+    dest: /root/functionbeat-8.2.0-linux-x86_64/functionbeat.yml
+    content: |-
+      functionbeat.provider.aws.endpoint: "s3.amazonaws.com"
+      functionbeat.provider.aws.deploy_bucket: "dw-function-beat"
+      functionbeat.provider.aws.functions:
+        - name: cloudwatch
+          enabled: true
+          type: cloudwatch_logs
+          triggers:
+            - log_group_name: /aws/containerinsights/{{eks_cluster_name}}/application
+            - log_group_name: /aws/containerinsights/{{eks_cluster_name}}/dataplane
+            - log_group_name: /aws/containerinsights/{{eks_cluster_name}}/host
+            - log_group_name: /aws/eks/{{eks_cluster_name}}/cluster
+
+      output.elasticsearch:
+        hosts: ["https://{{ip_response.content}}:9200"]
+        username: "elastic"
+        password: "{{elastic_password}}"
+        ssl:
+          enabled: true
+          certificate_authorities: |-
+            {{ elastic_cert.stdout | indent(width=6) }}
+
+- name: Deploy Functionbeat
+  shell:
+    cmd: |-
+      ./functionbeat remove cloudwatch > /dev/null
+      ./functionbeat setup
+      ./functionbeat deploy cloudwatch
+    chdir: /root/functionbeat-8.2.0-linux-x86_64
+
+- name: Register Kibana enrollment token
+  ansible.builtin.shell: /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+  register: enrollment_token
+
+- name: Register Kibana verification code
+  ansible.builtin.shell: /usr/share/kibana/bin/kibana-verification-code
+  register: verification_code
+
+- name: Print Kibana url
+  ansible.builtin.debug:
+    msg: "http://{{ip_response.content}}:5601"
+
+- name: Print Kibana enrollment token
+  ansible.builtin.debug:
+    var: enrollment_token.stdout
+
+- name: Print Kibana verification code
+  ansible.builtin.debug:
+    var: verification_code.stdout
