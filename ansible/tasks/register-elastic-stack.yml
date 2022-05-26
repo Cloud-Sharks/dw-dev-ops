@@ -1,22 +1,20 @@
-- name: Get EC2 Bastion instance
+- name: Get EC2 Elastic instance
   hosts: localhost
   tasks:
     - name: Register instance
       ec2_instance_info:
         region: us-east-1
         filters:
-          "tag:Name": "DW Bastion"
+          "tag:Name": "DW Elastic"
           "instance-state-name": "running"
           "key-name": "dw-us-east-1"
-      register: bastion
+      register: elastic
 
-    - name: Add instances to bastion group
+    - name: Add instances to elastic group
       add_host:
         hostname: "{{ item.public_ip_address }}"
-        groups:
-          - bastion
-          - eks-setup
-      loop: "{{ bastion.instances }}"
+        groupname: elastic
+      loop: "{{ elastic.instances }}"
 
     - name: Download pem key
       aws_s3:

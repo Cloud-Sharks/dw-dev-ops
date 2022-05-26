@@ -1,0 +1,2 @@
+eks_cluster_name: dw-eks
+elastic_password: "{{vault_elastic_password}}"
