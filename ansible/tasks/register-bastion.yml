@@ -13,7 +13,9 @@
     - name: Add instances to bastion group
       add_host:
         hostname: "{{ item.public_ip_address }}"
-        groupname: bastion
+        groups:
+          - bastion
+          - eks-setup
       loop: "{{ bastion.instances }}"
 
     - name: Download pem key

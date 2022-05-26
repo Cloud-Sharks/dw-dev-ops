@@ -1,2 +1,3 @@
+branch: main
 git_repo: "{{vault_git_repo}}"
 s3_bucket: "{{vault_s3_bucket}}"

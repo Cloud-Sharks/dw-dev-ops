@@ -2,9 +2,7 @@
 
 - name: Initialize elastic server
   hosts: elastic
-  roles:
-    - elastic-stack
   remote_user: ubuntu
   become: yes
-  vars_files:
-    - vars/aws/vars.yml
+  roles:
+    - elastic-stack

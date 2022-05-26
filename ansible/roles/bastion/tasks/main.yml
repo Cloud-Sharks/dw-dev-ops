@@ -46,4 +46,4 @@
       "AWS Access Key ID.*": "{{aws_key}}"
       "AWS Secret Access Key.*": "{{aws_secret}}"
       "Default region name.*": "{{aws_region}}"
-      "Default output format": None
+      "Default output format": "text"

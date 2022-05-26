@@ -4,31 +4,26 @@
     cmd: rm -rf devops; git clone -b {{ branch }} {{ git_repo }} devops
 
 - name: Get eksctl makefile env
-  environment: "{{ aws_environment }}"
   shell:
     chdir: /tmp/devops/eksctl
     cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.eksctl.env  .env
 
 - name: Init cluster
-  environment: "{{ aws_environment }}"
   shell:
     chdir: /tmp/devops/eksctl
     cmd: make init
 
 - name: Set Context
-  environment: "{{ aws_environment }}"
   shell:
     chdir: /tmp/devops/eksctl
     cmd: make set_context
 
 - name: Get microservice env
-  environment: "{{ aws_environment }}"
   shell:
     chdir: /tmp/devops/kubernetes/eks
     cmd: aws s3api get-object --bucket {{s3_bucket}} --key env/.microservice.env  .env
 
 - name: Install services
-  environment: "{{ aws_environment }}"
   shell:
     chdir: /tmp/devops/kubernetes/eks
     cmd: make init

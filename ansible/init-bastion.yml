@@ -2,7 +2,7 @@
 
 - name: Initialize bastion server
   hosts: bastion
-  roles:
-    - bastion
   remote_user: ubuntu
   become: yes
+  roles:
+    - bastion
