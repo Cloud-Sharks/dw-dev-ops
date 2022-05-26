@@ -7,8 +7,7 @@
   roles:
     - eks-setup
   vars_files:
-    - vars/eks-setup-vars.yml
-    - vars/aws-vars.yml
+    - vars/aws/vars.yml
   vars:
     aws_environment:
       AWS_ACCESS_KEY_ID: "{{aws_key}}"

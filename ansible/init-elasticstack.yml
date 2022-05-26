@@ -7,5 +7,4 @@
   remote_user: ubuntu
   become: yes
   vars_files:
-    - vars/elastic-vars.yml
-    - vars/aws-vars.yml
+    - vars/aws/vars.yml
