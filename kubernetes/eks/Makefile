@@ -10,7 +10,7 @@ define helm
 		--values microservice-values/$2.values.yml
 endef
 
-install_services: 
+install_services:
 	kubectl apply -R -f eks-config
 
 install_bank:
@@ -26,16 +26,16 @@ install_underwriter:
 	-$(call helm,install,underwriter)
 
 uninstall_bank:
-	-$(call helm,uninstall,bank)
+	-helm uninstall bank-microservice
 
 uninstall_user:
-	-$(call helm,uninstall,user)
+	-helm uninstall user-microservice
 
 uninstall_transaction:
-	-$(call helm,uninstall,transaction)
+	-helm uninstall transaction-microservice
 
 uninstall_underwriter:
-	-$(call helm,uninstall,underwriter)
+	-helm uninstall underwriter-microservice
 
 upgrade_bank:
 	-$(call helm,upgrade,bank)
