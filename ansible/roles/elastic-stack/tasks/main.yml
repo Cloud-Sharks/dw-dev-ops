@@ -87,9 +87,7 @@
           type: cloudwatch_logs
           triggers:
             - log_group_name: /aws/containerinsights/{{eks_cluster_name}}/application
-            - log_group_name: /aws/containerinsights/{{eks_cluster_name}}/dataplane
             - log_group_name: /aws/containerinsights/{{eks_cluster_name}}/host
-            - log_group_name: /aws/eks/{{eks_cluster_name}}/cluster
 
       output.elasticsearch:
         hosts: ["https://{{ip_response.content}}:9200"]
