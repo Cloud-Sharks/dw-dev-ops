@@ -45,9 +45,9 @@
 
 - name: Change elasitc password in logstash.conf
   lineinfile:
-    path: /etc/kibana/kibana.yml
-    regexp: '(\s*)password =>.*'
-    line: '\1password => {{ elastic_password }}'
+    path: /etc/logstash/conf.d/logstash.conf
+    regexp: '^(\s*)password =>.*$'
+    line: '\1password => "{{ elastic_password }}"'
     backrefs: yes
     firstmatch: yes
 
