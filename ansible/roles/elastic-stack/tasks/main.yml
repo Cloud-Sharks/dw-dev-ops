@@ -44,12 +44,10 @@
     dest: /etc/logstash/conf.d/logstash.conf
 
 - name: Change elasitc password in logstash.conf
-  lineinfile:
+  ansible.builtin.replace:
     path: /etc/logstash/conf.d/logstash.conf
     regexp: '^(\s*)password =>.*$'
-    line: '\1password => "{{ elastic_password }}"'
-    backrefs: yes
-    firstmatch: yes
+    replace: '\1password => "{{ elastic_password }}"'
 
 - name: Configure logstash.yml
   blockinfile:
