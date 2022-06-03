@@ -1,5 +1,5 @@
 include .env
-init: create_iam_policies create_cluster create_node_group install_services install_fluentbit
+init: create_iam_policies create_cluster create_node_group install_services install_externaldns install_fluentbit
 install_services: add_helm_repos create_service_accounts install_load_balancer install_ascp
 
 SHELL := /bin/bash
@@ -66,6 +66,10 @@ create_iam_policies:
 		--policy-name ${fluentBitPolicyName} \
 		--policy-document file://${fluentBitPolicyDocument}
 
+	-aws iam create-policy \
+		--policy-name ${externalDnsPolicyName} \
+		--policy-document file://${externalDnsPolicyDocument}
+
 create_service_accounts:
 	eksctl utils associate-iam-oidc-provider \
 		--region=${region} \
@@ -102,6 +106,15 @@ create_service_accounts:
 		--override-existing-serviceaccounts \
 		--approve
 
+# External DNS Service Account
+	eksctl create iamserviceaccount \
+		--cluster ${clusterName} \
+		--region=${region} \
+		--namespace ${externalDnsNamespace} \
+		--name ${externalDnsServiceAccountName} \
+		--attach-policy-arn arn:aws:iam::${accountId}:policy/${externalDnsPolicyName} \
+		--approve
+
 add_helm_repos:
 	-helm repo add eks https://aws.github.io/eks-charts
 	-helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
@@ -116,6 +129,9 @@ install_load_balancer:
 
 install_ascp:
 	helm install -n kube-system csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver --set syncSecret.enabled=true
+
+install_externaldns:
+	kubectl apply -f yaml/external-dns.yml
 
 .ONESHELL:
 install_fluentbit:
