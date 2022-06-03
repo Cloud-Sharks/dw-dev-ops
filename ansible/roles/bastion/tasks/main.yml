@@ -16,6 +16,12 @@
       - unzip
       - make
 
+- name: Create db script
+  copy:
+    remote_src: true
+    dest: /home/{{user_name}}/db_login.sh
+    content: mysql --host={{db_host}} --user={{db_username}} --password={{db_password}} {{db_name}}
+
 - name: Install helm
   shell: |
     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
