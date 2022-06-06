@@ -1,1 +1,5 @@
 user_name: ubuntu
+db_host: "{{vault_db_host}}"
+db_username: "{{vault_db_username}}"
+db_password: "{{vault_db_password}}"
+db_name: "{{vault_db_name}}"

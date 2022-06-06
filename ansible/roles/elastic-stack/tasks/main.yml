@@ -20,7 +20,7 @@
     sudo apt-get install -y apt-transport-https
     echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
     sudo apt-get update
-    sudo apt-get install -y elasticsearch kibana
+    sudo apt-get install -y elasticsearch kibana logstash
 
 - name: Change elasticsearch network host
   lineinfile:
@@ -38,6 +38,33 @@
     backrefs: yes
     firstmatch: yes
 
+- name: Configure logstash.conf
+  copy:
+    src: logstash.conf
+    dest: /etc/logstash/conf.d/logstash.conf
+
+- name: Change elasitc password in logstash.conf
+  ansible.builtin.replace:
+    path: /etc/logstash/conf.d/logstash.conf
+    regexp: '^(\s*)password =>.*$'
+    replace: '\1password => "{{ elastic_password }}"'
+
+- name: Configure logstash.yml
+  blockinfile:
+    dest: /etc/logstash/logstash.yml
+    marker: "# {mark} - Ansible"
+    insertafter: EOF
+    create: yes
+    block: |-
+      api.http.host: 0.0.0.0
+
+- name: Logstash prep
+  shell: |-
+    cp /etc/elasticsearch/certs/http_ca.crt /etc/logstash
+    chown logstash:logstash /etc/logstash/http_ca.crt
+    chown -R logstash:logstash /usr/share/logstash
+    chmod 777 /usr/share/logstash/data
+
 - name: Start elasticsearch
   ansible.builtin.systemd:
     name: elasticsearch
@@ -46,6 +73,11 @@
 - name: Start Kibana
   ansible.builtin.systemd:
     name: kibana
+    state: started
+
+- name: Start logstash
+  ansible.builtin.systemd:
+    name: logstash
     state: started
 
 - name: Set elastic user password
@@ -87,16 +119,12 @@
           type: cloudwatch_logs
           triggers:
             - log_group_name: /aws/containerinsights/{{eks_cluster_name}}/application
-            - log_group_name: /aws/containerinsights/{{eks_cluster_name}}/dataplane
             - log_group_name: /aws/containerinsights/{{eks_cluster_name}}/host
-            - log_group_name: /aws/eks/{{eks_cluster_name}}/cluster
 
-      output.elasticsearch:
-        hosts: ["https://{{ip_response.content}}:9200"]
-        username: "elastic"
-        password: "{{elastic_password}}"
+      output.logstash:
+        hosts: ["{{ip_response.content}}:5044"]
         ssl:
-          enabled: true
+          enabled: false
           certificate_authorities: |-
             {{ elastic_cert.stdout | indent(width=6) }}
 
