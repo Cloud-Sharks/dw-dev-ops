@@ -1,0 +1,13 @@
+- name: Install packages
+  shell: sudo apt update && sudo apt install -y git python3-pip
+
+- name: Clone repo
+  shell: |-
+    rm -rf {{root_folder}} 
+    git clone -b install-docker {{swift_repo}} {{root_folder}}
+
+- name: Run python
+  shell: |-
+    cd {{root_folder}}/src
+    pip install -r requirements.txt
+    ./main.py

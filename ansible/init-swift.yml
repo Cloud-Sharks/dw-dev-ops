@@ -1,0 +1,8 @@
+- import_playbook: tasks/register-swift.yml
+
+- name: Initialize swift server
+  hosts: swift
+  remote_user: ubuntu
+  become: yes
+  roles:
+    - swift

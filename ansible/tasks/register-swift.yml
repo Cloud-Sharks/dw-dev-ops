@@ -1,0 +1,28 @@
+- name: Get EC2 Elastic instance
+  hosts: localhost
+  tasks:
+    - name: Register instance
+      ec2_instance_info:
+        region: us-east-1
+        filters:
+          "tag:Name": "DW Swift"
+          "instance-state-name": "running"
+          "key-name": "dw-us-east-1"
+      register: swift
+
+    - name: Add instances to swift group
+      add_host:
+        hostname: "{{ item.public_ip_address }}"
+        groupname: swift
+      loop: "{{ swift.instances }}"
+
+    - name: Download pem key
+      aws_s3:
+        bucket: dw-infra-bucket
+        object: /keys/dw-us-east-1.pem
+        dest: ../files/dw-us-east-1.pem
+        mode: get
+        overwrite: different
+
+    - name: Change pem permissons
+      shell: chmod 400 ../files/dw-us-east-1.pem
