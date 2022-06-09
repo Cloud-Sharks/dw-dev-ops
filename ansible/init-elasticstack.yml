@@ -2,6 +2,7 @@
   vars:
     tagName: "DW Elastic"
     groupNames:
+      - aws-vars
       - elastic
 
 - name: Initialize elastic server

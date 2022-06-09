@@ -2,6 +2,7 @@
   vars:
     tagName: "DW Bastion"
     groupNames:
+      - aws-vars
       - eks-setup
 
 - name: Initialize eks cluster
