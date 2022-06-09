@@ -10,4 +10,5 @@
   remote_user: ubuntu
   become: yes
   roles:
+    - qol-config
     - elastic-stack
