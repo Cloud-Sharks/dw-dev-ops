@@ -1,0 +1,34 @@
+- name: Get EC2 Elastic instance
+  hosts: localhost
+  tasks:
+    - name: Register instance
+      ec2_instance_info:
+        region: us-east-1
+        filters:
+          "tag:Name": "{{tagName}}"
+          "instance-state-name": "running"
+          "key-name": "dw-us-east-1"
+      register: ec2
+
+    - name: Add instances to group
+      add_host:
+        hostname: "{{ item.public_ip_address }}"
+        groups: "{{groupNames}}"
+      loop: "{{ ec2.instances }}"
+
+    - name: Check if pem file exists
+      stat:
+        path: ../files/dw-us-east-1.pem
+      register: pem
+
+    - name: Download pem key
+      when: pem.stat.exists == false
+      aws_s3:
+        bucket: dw-infra-bucket
+        object: /keys/dw-us-east-1.pem
+        dest: ../files/dw-us-east-1.pem
+        mode: get
+        overwrite: different
+
+    - name: Change pem permissons
+      shell: chmod 400 ../files/dw-us-east-1.pem
