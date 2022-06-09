@@ -1,0 +1,7 @@
+- name: Set default editor to vim
+  blockinfile:
+    dest: /etc/profile
+    block: export EDITOR=vim
+    marker: "# {mark} - Ansible"
+    insertbefore: BOF
+    create: yes
