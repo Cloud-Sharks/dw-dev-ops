@@ -10,5 +10,6 @@
   remote_user: ubuntu
   become: yes
   roles:
+    - qol-config
     - eks-setup
   environment: "{{aws_environment}}"
