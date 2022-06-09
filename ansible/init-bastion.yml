@@ -1,4 +1,8 @@
-- import_playbook: tasks/register-bastion.yml
+- import_playbook: tasks/register-instance.yml
+  vars:
+    tagName: "DW Bastion"
+    groupNames:
+      - bastion
 
 - name: Initialize bastion server
   hosts: bastion
