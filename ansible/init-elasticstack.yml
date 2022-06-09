@@ -1,4 +1,9 @@
-- import_playbook: tasks/register-elastic-stack.yml
+- import_playbook: tasks/register-instance.yml
+  vars:
+    tagName: "DW Elastic"
+    groupNames:
+      - aws-vars
+      - elastic
 
 - name: Initialize elastic server
   hosts: elastic

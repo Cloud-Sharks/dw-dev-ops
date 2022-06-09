@@ -1,4 +1,9 @@
-- import_playbook: tasks/register-bastion.yml
+- import_playbook: tasks/register-instance.yml
+  vars:
+    tagName: "DW Bastion"
+    groupNames:
+      - aws-vars
+      - eks-setup
 
 - name: Initialize eks cluster
   hosts: eks-setup
