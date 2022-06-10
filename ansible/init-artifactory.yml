@@ -1,0 +1,13 @@
+- import_playbook: tasks/register-instance.yml
+  vars:
+    tagName: "DW Artifactory"
+    groupNames:
+      - artifactory
+
+- name: Init
+  hosts: artifactory
+  remote_user: ubuntu
+  become: yes
+  roles:
+    - qol-config
+    - artifactory

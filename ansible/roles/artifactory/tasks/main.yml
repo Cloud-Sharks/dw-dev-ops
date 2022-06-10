@@ -1,0 +1,15 @@
+- name: Check if Docker is already installed
+  ignore_errors: yes
+  shell: docker version
+  register: docker_command
+
+- ansible.builtin.import_tasks: install-docker.yml
+  when: docker_command.rc != 0
+
+- name: Add user to docker group
+  shell: usermod -aG docker ubuntu
+
+- name: Copy docker compose files to ec2 instance
+  ansible.builtin.copy:
+    src: artifactory
+    dest: /home/ubuntu
