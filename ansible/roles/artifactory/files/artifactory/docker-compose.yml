@@ -20,7 +20,7 @@ services:
       - nginx-proxy
     environment:
       - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
-      - VIRTUAL_HOST=dw.artifactory.cloudsharks.name,art.localhost
+      - VIRTUAL_HOST=dw.jcr.cloudsharks.name,jcr.localhost
       - VIRTUAL_PORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
     volumes:
       - artifactory:/var/opt/jfrog/artifactory
@@ -39,7 +39,7 @@ services:
       - nginx-proxy
     environment:
       - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
-      - VIRTUAL_HOST=dw.jcr.cloudsharks.name,jcr.localhost
+      - VIRTUAL_HOST=dw.artifactory.cloudsharks.name,art.localhost
       - VIRTUAL_PORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
     volumes:
       - artifactory-jcr:/var/opt/jfrog/artifactory
