@@ -15,3 +15,8 @@
     dest: /home/ubuntu
     owner: ubuntu
     group: ubuntu
+
+- name: Start artifactory docker services
+  shell:
+    cmd: docker compose up -d
+    chdir: /home/ubuntu/artifactory
