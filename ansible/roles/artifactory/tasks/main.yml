@@ -13,3 +13,5 @@
   ansible.builtin.copy:
     src: artifactory
     dest: /home/ubuntu
+    owner: ubuntu
+    group: ubuntu
