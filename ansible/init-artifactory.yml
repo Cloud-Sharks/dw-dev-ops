@@ -11,3 +11,26 @@
   roles:
     - qol-config
     - artifactory
+
+- name: Register route53 records for artifactory
+  hosts: localhost
+  tasks:
+    - community.aws.route53:
+        state: present
+        overwrite: true
+        zone: cloudsharks.name
+        record: dw.artifactory.cloudsharks.name
+        type: A
+        ttl: 600
+        value: "{{ groups['artifactory'] | join(',') }}"
+        wait: yes
+
+    - community.aws.route53:
+        state: present
+        overwrite: true
+        zone: cloudsharks.name
+        record: dw.jcr.cloudsharks.name
+        type: A
+        ttl: 600
+        value: "{{ groups['artifactory'] | join(',') }}"
+        wait: yes

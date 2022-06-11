@@ -2,25 +2,48 @@ version: "3.7"
 
 volumes:
   artifactory:
+  artifactory-jcr:
 
 services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - 80:80
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
   artifactory:
     image: ${DOCKER_REGISTRY}/jfrog/artifactory-jcr:${ARTIFACTORY_VERSION}
     container_name: artifactory
+    restart: always
+    depends_on:
+      - nginx-proxy
     environment:
       - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
-    ports:
-      - ${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}:${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT} # for router communication
-      - 8081:8081 # for artifactory communication
+      - VIRTUAL_HOST=dw.artifactory.cloudsharks.name
+      - VIRTUAL_PORT=8082
     volumes:
       - artifactory:/var/opt/jfrog/artifactory
       - /etc/localtime:/etc/localtime:ro
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
+
+  artifactory-jcr:
+    image: ${DOCKER_REGISTRY}/jfrog/artifactory-oss:${ARTIFACTORY_VERSION}
+    container_name: jcr-artifactory
     restart: always
-    logging:
-      driver: json-file
-      options:
-        max-size: "50m"
-        max-file: "10"
+    depends_on:
+      - nginx-proxy
+    environment:
+      - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
+      - VIRTUAL_HOST=dw.jcr.cloudsharks.name
+      - VIRTUAL_PORT=8082
+    volumes:
+      - artifactory-jcr:/var/opt/jfrog/artifactory
+      - /etc/localtime:/etc/localtime:ro
     ulimits:
       nproc: 65535
       nofile:
