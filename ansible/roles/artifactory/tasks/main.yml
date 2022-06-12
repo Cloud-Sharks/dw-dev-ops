@@ -20,3 +20,5 @@
   shell:
     cmd: docker compose up -d
     chdir: /home/{{ user }}/artifactory
+
+- ansible.builtin.import_tasks: register-routes.yml

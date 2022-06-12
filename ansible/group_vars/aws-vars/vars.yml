@@ -2,3 +2,8 @@ aws_key: "{{vault_aws_key}}"
 aws_secret: "{{vault_aws_secret}}"
 aws_region: "{{vault_aws_region}}"
 account_id: "{{vault_account_id}}"
+
+aws_environment:
+  AWS_ACCESS_KEY_ID: "{{aws_key}}"
+  AWS_SECRET_ACCESS_KEY: "{{aws_secret}}"
+  AWS_DEFAULT_REGION: "{{aws_region}}"

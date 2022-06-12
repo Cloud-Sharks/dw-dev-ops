@@ -1,1 +1,4 @@
 user: ubuntu
+hosted_zone: cloudsharks.name
+jcr_record: dw.jcr.cloudsharks.name
+artifactory_record: dw.artifactory.cloudsharks.name
