@@ -17,7 +17,7 @@ pipeline {
   }
 
   stages {
-    stage('Setup') {
+    stage('Setup environment variables') {
       steps {
         script {
           configFileProvider([configFile(fileId: 'dw-jenkins-config', variable: 'JENKINS_CONFIG')]) {
@@ -28,10 +28,14 @@ pipeline {
           AWS_DEFAULT_REGION = readJSON(text: TF_JSON)['region']
 
           serviceName = getServiceName(GIT_URL)
-
-          sh 'git submodule init'
-          sh 'git submodule update'
         }
+      }
+    }
+
+    stage('Update repo submodules') {
+      steps {
+        sh 'git submodule init'
+        sh 'git submodule update'
       }
     }
 
@@ -59,7 +63,7 @@ pipeline {
 
     stage('Package Maven Project') {
       steps {
-        sh 'mvn package -Dmaven.test.skip=true'
+        sh 'mvn clean install package -Dmaven.test.skip=true'
       }
     }
 
@@ -82,7 +86,7 @@ pipeline {
       }
     }
 
-    stage('Push Image') {
+    stage('Push docker image to ECR') {
       steps {
         withCredentials([[
           $class: 'AmazonWebServicesCredentialsBinding',
@@ -99,6 +103,22 @@ pipeline {
             sh "docker push ${taggedImageLatest}"
           }
         }
+      }
+    }
+
+    stage('Push Java Artifacts to Artifactory') {
+      steps {
+        rtUpload (
+          serverId: 'DW-Artifactory',
+          spec: /{
+              "files": [
+                {
+                  "pattern": "*-microservice\/target\/*.jar",
+                  "target": "Aline\/${serviceName}-microservice"
+                }
+            ]
+          }/,
+        )
       }
     }
 
