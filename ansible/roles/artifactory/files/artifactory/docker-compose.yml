@@ -11,6 +11,7 @@ services:
       - 80:80
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./proxy.conf:/etc/nginx/proxy.conf
 
   artifactory-jcr:
     image: ${DOCKER_REGISTRY}/jfrog/artifactory-jcr:${ARTIFACTORY_VERSION}
@@ -20,7 +21,7 @@ services:
       - nginx-proxy
     environment:
       - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
-      - VIRTUAL_HOST=dw.jcr.cloudsharks.name
+      - VIRTUAL_HOST=dw.jcr.cloudsharks.name,art.localhost
       - VIRTUAL_PORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
     volumes:
       - artifactory:/var/opt/jfrog/artifactory
@@ -39,7 +40,7 @@ services:
       - nginx-proxy
     environment:
       - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
-      - VIRTUAL_HOST=dw.artifactory.cloudsharks.name
+      - VIRTUAL_HOST=dw.artifactory.cloudsharks.name,jcr.localhost
       - VIRTUAL_PORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
     volumes:
       - artifactory-jcr:/var/opt/jfrog/artifactory
