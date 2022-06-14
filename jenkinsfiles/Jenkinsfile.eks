@@ -106,6 +106,20 @@ pipeline {
       }
     }
 
+    stage('Push docker image to Artifactory') {
+      steps {
+        script {
+          def jenkins = readJSON(text: JENKINS_JSON)
+          def url = jenkins['jcrUrl']
+          def username = jenkins['artifactoryUsername']
+          def password = jenkins['artifactoryPassword']
+
+          bash("echo ${password} | docker login -u ${username} --password-stdin ${url}")
+          sh "docker push ${url}/bank-microservice/${taggedImageCommitHash}"
+        }
+      }
+    }
+
     stage('Push Java Artifacts to Artifactory') {
       steps {
         rtUpload (
