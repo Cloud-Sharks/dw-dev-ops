@@ -141,7 +141,7 @@ pipeline {
               "files": [
                 {
                   "pattern": "*-microservice\/target\/*.jar",
-                  "target": "Aline\/${serviceName}-microservice"
+                  "target": "Aline\/${serviceName}-microservice.jar"
                 }
             ]
           }/,
