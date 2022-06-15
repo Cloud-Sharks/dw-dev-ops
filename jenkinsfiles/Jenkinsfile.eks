@@ -1,8 +1,5 @@
 // Leave blank
-def taggedImageLatest = ''
-def taggedImageCommitHash = ''
-def artifactoryImageLatest = ''
-def artifactoryImageHash = ''
+def microserviceImage = ''
 def serviceName = ''
 
 pipeline {
@@ -30,6 +27,7 @@ pipeline {
           AWS_DEFAULT_REGION = readJSON(text: TF_JSON)['region']
 
           serviceName = getServiceName(GIT_URL)
+          microserviceImage = "${serviceName}:${shortCommitHash()}"
         }
       }
     }
@@ -47,21 +45,21 @@ pipeline {
       }
     }
 
-    stage('SonarQube Code Analysis') {
-      steps {
-        withSonarQubeEnv('dw-sonarqube') {
-          sh 'mvn verify sonar:sonar -Dmaven.test.skip=true'
-        }
-      }
-    }
+    // stage('SonarQube Code Analysis') {
+    //   steps {
+    //     withSonarQubeEnv('dw-sonarqube') {
+    //       sh 'mvn verify sonar:sonar -Dmaven.test.skip=true'
+    //     }
+    //   }
+    // }
 
-    stage('Quality Gate') {
-      steps {
-        timeout(time: 5, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: true
-        }
-      }
-    }
+    // stage('Quality Gate') {
+    //   steps {
+    //     timeout(time: 5, unit: 'MINUTES') {
+    //       waitForQualityGate abortPipeline: true
+    //     }
+    //   }
+    // }
 
     stage('Package Maven Project') {
       steps {
@@ -72,15 +70,7 @@ pipeline {
     stage('Build Docker Image') {
       steps {
         script {
-          def ecrRepository = "dw-${serviceName}-microservice"
-          def ecrUrl = readJSON(text: JENKINS_JSON)['ecrRepositoryUrl']
-          def commitHash = shortCommitHash()
-
-          taggedImageLatest = "${ecrUrl}/${ecrRepository}"
-          taggedImageCommitHash = "${ecrUrl}/${ecrRepository}:${commitHash}"
-
-          sh "docker build -t ${taggedImageLatest} ."
-          sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
+          sh "docker build -t ${microserviceImage} ."
         }
       }
     }
@@ -94,12 +84,20 @@ pipeline {
           secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
         {
           script {
-            def jenkins = readJSON(text: JENKINS_JSON)
-            def tf = readJSON(text: TF_JSON)
+            def ecrUrl = readJSON(text: JENKINS_JSON)['ecrRepositoryUrl']
+            def region = readJSON(text: TF_JSON)['region']
+            def commitHash = shortCommitHash()
+            def ecrRepository = "dw-${serviceName}-microservice"
 
-            sh "aws ecr get-login-password --region ${tf['region']} | docker login --username AWS --password-stdin ${jenkins['ecrRepositoryUrl']}"
-            sh "docker push ${taggedImageCommitHash}"
-            sh "docker push ${taggedImageLatest}"
+            def ecrTagLatest = "${ecrUrl}/${ecrRepository}"
+            def ecrTagHash = "${ecrUrl}/${ecrRepository}:${commitHash}"
+
+            sh "docker tag ${microserviceImage} ${ecrTagLatest}"
+            sh "docker tag ${microserviceImage} ${ecrTagHash}"
+
+            sh "aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ecrUrl}"
+            sh "docker push ${ecrTagLatest}"
+            sh "docker push ${ecrTagHash}"
           }
         }
       }
@@ -112,21 +110,21 @@ pipeline {
           def jcrUrl = jenkins['jcrUrl']
           def commitHash = shortCommitHash()
 
-          artifactoryImageLatest = "${jcrUrl}/aline/dw-${serviceName}-microservice:latest"
-          artifactoryImageHash = "${jcrUrl}/aline/dw-${serviceName}-microservice:${commitHash}"
+          def artifactoryTagLatest = "${jcrUrl}/aline/dw-${serviceName}-microservice:latest"
+          def artifactoryTagHashed = "${jcrUrl}/aline/dw-${serviceName}-microservice:${commitHash}"
 
-          sh "docker tag ${taggedImageLatest} ${artifactoryImageLatest}"
-          sh "docker tag ${taggedImageLatest} ${artifactoryImageHash}"
+          sh "docker tag ${microserviceImage} ${artifactoryTagLatest}"
+          sh "docker tag ${microserviceImage} ${artifactoryTagHashed}"
 
           rtDockerPush(
             serverId: 'DW-JCR',
-            image: "${artifactoryImageLatest}",
+            image: "${artifactoryTagLatest}",
             targetRepo: 'aline',
           )
 
           rtDockerPush(
             serverId: 'DW-JCR',
-            image: "${artifactoryImageHash}",
+            image: "${artifactoryTagHashed}",
             targetRepo: 'aline',
           )
         }
