@@ -1,6 +1,8 @@
 // Leave blank
 def taggedImageLatest = ''
 def taggedImageCommitHash = ''
+def artifactoryImageLatest = ''
+def artifactoryImageHash = ''
 def serviceName = ''
 
 pipeline {
@@ -32,14 +34,14 @@ pipeline {
       }
     }
 
-    stage('Update repo submodules') {
+    stage('Update repository submodules') {
       steps {
         sh 'git submodule init'
         sh 'git submodule update'
       }
     }
 
-    stage('Test') {
+    stage('Run unit tests') {
       steps {
         sh 'mvn clean install test'
       }
@@ -63,22 +65,19 @@ pipeline {
 
     stage('Package Maven Project') {
       steps {
-        sh 'mvn clean install package -Dmaven.test.skip=true'
+        sh 'mvn package -Dmaven.test.skip=true'
       }
     }
 
     stage('Build Docker Image') {
-      environment {
-        COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
-      }
-
       steps {
         script {
           def ecrRepository = "dw-${serviceName}-microservice"
           def ecrUrl = readJSON(text: JENKINS_JSON)['ecrRepositoryUrl']
+          def commitHash = shortCommitHash()
 
           taggedImageLatest = "${ecrUrl}/${ecrRepository}"
-          taggedImageCommitHash = "${ecrUrl}/${ecrRepository}:${COMMIT_HASH}"
+          taggedImageCommitHash = "${ecrUrl}/${ecrRepository}:${commitHash}"
 
           sh "docker build -t ${taggedImageLatest} ."
           sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
@@ -86,7 +85,7 @@ pipeline {
       }
     }
 
-    stage('Push docker image to ECR') {
+    stage('Push docker images to ECR') {
       steps {
         withCredentials([[
           $class: 'AmazonWebServicesCredentialsBinding',
@@ -106,16 +105,30 @@ pipeline {
       }
     }
 
-    stage('Push docker image to Artifactory') {
+    stage('Push docker images to Artifactory') {
       steps {
         script {
           def jenkins = readJSON(text: JENKINS_JSON)
-          def url = jenkins['jcrUrl']
-          def username = jenkins['artifactoryUsername']
-          def password = jenkins['artifactoryPassword']
+          def jcrUrl = jenkins['jcrUrl']
+          def commitHash = shortCommitHash()
 
-          bash("echo ${password} | docker login -u ${username} --password-stdin ${url}")
-          sh "docker push ${url}/bank-microservice/${taggedImageCommitHash}"
+          artifactoryImageLatest = "${jcrUrl}/aline/dw-${serviceName}-microservice:latest"
+          artifactoryImageHash = "${jcrUrl}/aline/dw-${serviceName}-microservice:${commitHash}"
+
+          sh "docker tag ${taggedImageLatest} ${artifactoryImageLatest}"
+          sh "docker tag ${taggedImageLatest} ${artifactoryImageHash}"
+
+          rtDockerPush(
+            serverId: 'DW-JCR',
+            image: "${artifactoryImageLatest}",
+            targetRepo: 'aline',
+          )
+
+          rtDockerPush(
+            serverId: 'DW-JCR',
+            image: "${artifactoryImageHash}",
+            targetRepo: 'aline',
+          )
         }
       }
     }
@@ -295,6 +308,10 @@ def checkServiceName(serviceName) {
   if (acceptable.contains(serviceName) == false) {
     error "Invalid service name: '${serviceName}'"
   }
+}
+
+def shortCommitHash() {
+  return bash("git log -1 --pretty=format:\"%h\"")
 }
 
 // Pipes act weird in jenkins so use eval to make sure it completes properly
