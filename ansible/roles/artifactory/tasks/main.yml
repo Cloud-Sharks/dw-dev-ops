@@ -1,3 +1,5 @@
+- ansible.builtin.import_tasks: register-routes.yml
+
 - name: Check if Docker is already installed
   ignore_errors: yes
   shell: docker version
@@ -20,5 +22,3 @@
   shell:
     cmd: docker compose up -d
     chdir: /home/{{ user }}/artifactory
-
-- ansible.builtin.import_tasks: register-routes.yml
