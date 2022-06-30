@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
-
 metadata:
   name: {{ required ".Values.serviceName" .Values.serviceName }}-deployment
   namespace: {{ required ".Values.namespace" .Values.namespace }}
   labels:
     app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+    deployment: {{ required ".Values.deployment" .Values.deployment }}
 spec:
   replicas: {{ required ".Values.replicas" .Values.replicas }}
   strategy:
@@ -13,10 +13,12 @@ spec:
   selector:
     matchLabels:
       app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+      deployment: {{ required ".Values.deployment" .Values.deployment }}
   template:
     metadata:
       labels:
         app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+        deployment: {{ required ".Values.deployment" .Values.deployment }}
     spec:
       containers:
         - name: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
@@ -38,10 +40,12 @@ metadata:
   namespace: {{ required ".Values.namespace" .Values.namespace }}
   labels:
     app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+    deployment: {{ required ".Values.deployment" .Values.deployment }}
 spec:
   type: NodePort
   selector:
     app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+    deployment: {{ required ".Values.deployment" .Values.deployment }}
   ports:
     - protocol: TCP
       port: {{ required ".Values.ports.exposedPort" .Values.ports.exposedPort }}
