@@ -5,19 +5,20 @@ uninstall: uninstall_bank uninstall_user uninstall_transaction uninstall_underwr
 upgrade: upgrade_bank upgrade_user upgrade_transaction upgrade_underwriter
 
 define helm
-	helm $1 $2-microservice . \
+	helm $1 $2-$3 . \
 		--values microservice-values/$2.values.yml \
-		--set deployment=$3
+		--set deployment=$3 \
+		--set ports.nodePort=$4
 endef
 
 configure:
 	-kubectl create secret generic microservice-secrets --from-env-file .env
 
 install_bank_green:
-	-$(call helm,install,bank,green)
+	-$(call helm,install,bank,green,30001)
 
 install_bank_blue:
-	-$(call helm,install,bank,blue)
+	-$(call helm,install,bank,blue,31001)
 
 install_user:
 	-$(call helm,install,user)
