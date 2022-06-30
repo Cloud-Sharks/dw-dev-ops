@@ -5,7 +5,7 @@ image:
 
 ports:
   exposedPort: 8083
-  nodePort: 30001
+  nodePort: null
 
 strategy:
   type: RollingUpdate
