@@ -1,19 +1,23 @@
 include .env
-init: install_services install
+init: configure install
 install: install_bank install_user install_transaction install_underwriter
 uninstall: uninstall_bank uninstall_user uninstall_transaction uninstall_underwriter
 upgrade: upgrade_bank upgrade_user upgrade_transaction upgrade_underwriter
 
 define helm
 	helm $1 $2-microservice . \
-		--values microservice-values/$2.values.yml
+		--values microservice-values/$2.values.yml \
+		--set deployment=$3
 endef
 
-install_services:
+configure:
 	-kubectl create secret generic microservice-secrets --from-env-file .env
 
-install_bank:
-	-$(call helm,install,bank)
+install_bank_green:
+	-$(call helm,install,bank,green)
+
+install_bank_blue:
+	-$(call helm,install,bank,blue)
 
 install_user:
 	-$(call helm,install,user)
@@ -36,14 +40,14 @@ uninstall_transaction:
 uninstall_underwriter:
 	-helm uninstall underwriter-microservice
 
-upgrade_bank:
-	-$(call helm,upgrade,bank)
+# upgrade_bank:
+# 	-$(call helm,upgrade,bank)
 
-upgrade_user:
-	-$(call helm,upgrade,user)
+# upgrade_user:
+# 	-$(call helm,upgrade,user)
 
-upgrade_transaction:
-	-$(call helm,upgrade,transaction)
+# upgrade_transaction:
+# 	-$(call helm,upgrade,transaction)
 
-upgrade_underwriter:
-	-$(call helm,upgrade,underwriter)
+# upgrade_underwriter:
+# 	-$(call helm,upgrade,underwriter)
