@@ -1,5 +1,5 @@
 include .env
-init: configure install
+init: configure
 
 install_green: install_bank_green install_user_green install_transaction_green install_underwriter_green
 install_blue: install_bank_blue install_user_blue install_transaction_blue install_underwriter_blue
