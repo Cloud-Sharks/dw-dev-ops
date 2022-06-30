@@ -1,0 +1,7 @@
+namespace: default
+
+repository: captainsalt
+
+resources:
+  limits:
+    memory: 1G

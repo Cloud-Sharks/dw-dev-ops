@@ -1,0 +1,13 @@
+serviceName: user
+
+image:
+  tag: latest
+
+ports:
+  exposedPort: 8070
+  nodePort: 30000
+
+strategy:
+  type: RollingUpdate
+
+replicas: 1
