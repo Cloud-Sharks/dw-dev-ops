@@ -1,0 +1,5 @@
+apiVersion: v2
+name: local-chart
+description: Deployment of Aline Financial
+type: application
+version: 0.1.0
