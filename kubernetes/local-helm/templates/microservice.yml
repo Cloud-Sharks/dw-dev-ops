@@ -1,24 +1,26 @@
+{{- define "microservice.labels" }}
+app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+deployment: {{ required ".Values.deployment" .Values.deployment }}
+{{- end }}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ required ".Values.serviceName" .Values.serviceName }}-deployment
+  name: {{ required ".Values.serviceName" .Values.serviceName }}-deployment-{{ required ".Values.deployment" .Values.deployment }}
   namespace: {{ required ".Values.namespace" .Values.namespace }}
   labels:
-    app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
-    deployment: {{ required ".Values.deployment" .Values.deployment }}
+    {{- include "microservice.labels" . | indent 4 }}
 spec:
   replicas: {{ required ".Values.replicas" .Values.replicas }}
   strategy:
     type: {{ .Values.strategy.type }}
   selector:
     matchLabels:
-      app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
-      deployment: {{ required ".Values.deployment" .Values.deployment }}
+      {{- include "microservice.labels" . | indent 6 }}
   template:
     metadata:
       labels:
-        app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
-        deployment: {{ required ".Values.deployment" .Values.deployment }}
+        {{- include "microservice.labels" . | indent 8 }}
     spec:
       containers:
         - name: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
@@ -36,16 +38,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ required ".Values.serviceName" .Values.serviceName }}-service
+  name: {{ required ".Values.serviceName" .Values.serviceName }}-service-{{ required ".Values.deployment" .Values.deployment }}
   namespace: {{ required ".Values.namespace" .Values.namespace }}
   labels:
-    app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
-    deployment: {{ required ".Values.deployment" .Values.deployment }}
+    {{- include "microservice.labels" . | indent 4 }}
 spec:
   type: NodePort
   selector:
-    app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
-    deployment: {{ required ".Values.deployment" .Values.deployment }}
+    {{- include "microservice.labels" . | indent 4 }}
   ports:
     - protocol: TCP
       port: {{ required ".Values.ports.exposedPort" .Values.ports.exposedPort }}
