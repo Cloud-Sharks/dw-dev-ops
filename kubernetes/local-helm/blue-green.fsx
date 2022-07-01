@@ -73,23 +73,23 @@ module Kubernetes =
     open CliWrap
     open CliWrap.Buffered
 
-    type KubernetesDeployment =
+    type Pod =
         { Service: Service
           Deployment: Deployment
           CreationDate: DateTime }
 
-    type GetKubernetesDeploymentArgs =
+    type GetPodArgs =
         { Deployment: string
           PodName: string
           Service: string }
 
     let private serviceRegex =
-        Regex("""(?<service>\w+)-deployment-(?<color>blue|green)(-.+?){2}\b""")
+        Regex("""(?<service>\w+)-(?<color>blue|green)(-.+?){2}\b""")
 
     let private timeRegex = Regex("""Start Time:\s+(?<time>.*)""")
 
     // TODO: Wrap in Result
-    let getPodStartTime podName =
+    let podStartTime podName =
         task {
             let! result =
                 Cli
@@ -103,18 +103,18 @@ module Kubernetes =
             return matchGroups.Item("time").Value |> DateTime.Parse
         }
 
-    let getKubernetesDeployment args =
+    let getPod args =
         let (>>=) m fn = Result.bind fn m
         let service = args.Service |> parseService
         let deployment = args.Deployment |> parseDeployment
 
         let creationDate =
             args.PodName
-            |> getPodStartTime
+            |> podStartTime
             |> Async.AwaitTask
             |> Async.RunSynchronously
 
-        let kubernetesDeployment =
+        let pod =
             service
             >>= fun s ->
                     deployment
@@ -124,7 +124,7 @@ module Kubernetes =
                               CreationDate = creationDate }
                             |> Ok
 
-        kubernetesDeployment
+        pod
 
     let getDeployments =
         let (>>=) m fn = Result.bind fn m
@@ -150,7 +150,7 @@ module Kubernetes =
               let deployment = podName.Groups.Item("color").Value
 
               let deployment =
-                  getKubernetesDeployment
+                  getPod
                       { Deployment = deployment
                         Service = service
                         PodName = podName.Value }
@@ -230,8 +230,6 @@ module Commands =
         | "old" -> Ok()
         | "new" -> Ok()
         | _ as dir -> Error $"Invalid direction {dir}"
-
-// let rollback path service = task {  }
 
 
 open Kubernetes
