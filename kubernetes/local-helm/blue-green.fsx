@@ -126,7 +126,7 @@ module Kubernetes =
 
         kubernetesDeployment
 
-    let getDeployments service =
+    let getDeployments =
         let (>>=) m fn = Result.bind fn m
 
         let cliResult =
@@ -157,4 +157,4 @@ module Kubernetes =
 open Kubernetes
 open Types
 
-let result = getDeployments Bank
+let result = getDeployments
