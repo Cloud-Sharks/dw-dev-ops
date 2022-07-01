@@ -273,6 +273,8 @@ module Commands =
                     uninstall path service Blue |> ignore
                     return Ok $"Uninstalled newer blue deployment"
         }
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
 
     let deploy path service =
         task {
@@ -283,10 +285,8 @@ module Commands =
 
             let listLength = podDeployments |> List.length
 
-            if listLength = 0 then
-                return Error $"No deployments of {service} exist"
-            elif listLength = 2 then
-                return Error $"Both deployments of {service} already exist"
+            if listLength <> 2 then
+                return Error $"Both deployments of {service} are not up"
             else
                 let blueAge = podAge service Blue
                 let greenAge = podAge service Green
@@ -298,6 +298,8 @@ module Commands =
                     uninstall path service Blue |> ignore
                     return Ok $"Uninstalled old blue deployment"
         }
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
 
 open Kubernetes
 open Types
@@ -306,4 +308,6 @@ open Commands
 let path =
     "/home/david/Documents/Projects/Smoothstack/Aline/dev-ops/kubernetes/local-helm"
 
-let result = blueGreen path Bank
+let results =
+    [ blueGreen path Bank
+      deploy path Bank ]
