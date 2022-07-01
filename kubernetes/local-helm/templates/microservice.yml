@@ -6,7 +6,7 @@ deployment: {{ required ".Values.deployment" .Values.deployment }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ required ".Values.serviceName" .Values.serviceName }}-deployment-{{ required ".Values.deployment" .Values.deployment }}
+  name: {{ required ".Values.serviceName" .Values.serviceName }}-{{ required ".Values.deployment" .Values.deployment }}
   namespace: {{ required ".Values.namespace" .Values.namespace }}
   labels:
     {{- include "microservice.labels" . | indent 4 }}
