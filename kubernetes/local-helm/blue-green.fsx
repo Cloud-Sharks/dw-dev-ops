@@ -78,7 +78,7 @@ module Kubernetes =
           Deployment: Deployment
           CreationDate: DateTime }
 
-    type CreateKubernetesDeploymentArgs =
+    type GetKubernetesDeploymentArgs =
         { Deployment: string
           PodName: string
           Service: string }
@@ -103,7 +103,7 @@ module Kubernetes =
             return matchGroups.Item("time").Value |> DateTime.Parse
         }
 
-    let createKubernetesDeployment args =
+    let getKubernetesDeployment args =
         let (>>=) m fn = Result.bind fn m
         let service = args.Service |> parseService
         let deployment = args.Deployment |> parseDeployment
@@ -149,12 +149,96 @@ module Kubernetes =
               let service = podName.Groups.Item("service").Value
               let deployment = podName.Groups.Item("color").Value
 
-              createKubernetesDeployment
-                  { Deployment = deployment
-                    Service = service
-                    PodName = podName.Value } ]
+              let deployment =
+                  getKubernetesDeployment
+                      { Deployment = deployment
+                        Service = service
+                        PodName = podName.Value }
+
+              match deployment with
+              | Ok d -> d
+              | Error msg -> failwith msg ]
+
+module Commands =
+    open Types
+    open Kubernetes
+    open CliWrap
+    open CliWrap.Buffered
+
+    let private oppositeDeployment =
+        function
+        | Blue -> Green
+        | Green -> Blue
+
+    // TODO: Return result
+    let private install path service deployment =
+        task {
+            let args =
+                $"install_{service}_{deployment}".ToLower()
+
+            let! result =
+                Cli
+                    .Wrap("make")
+                    .WithArguments(args)
+                    .WithWorkingDirectory(path)
+                    .ExecuteBufferedAsync()
+
+            return result
+        }
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    // TODO: Return result
+    let private uninstall path service deployment =
+        task {
+            let args =
+                $"uninstall_{service}_{deployment}".ToLower()
+
+            let! result =
+                Cli
+                    .Wrap("make")
+                    .WithArguments(args)
+                    .WithWorkingDirectory(path)
+                    .ExecuteBufferedAsync()
+
+            return result
+        }
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    let blueGreen path service =
+        task {
+            let serviceDeployments =
+                getDeployments
+                |> List.filter (fun d -> d.Service = service)
+                |> List.groupBy (fun d -> d.Deployment)
+
+            if List.length serviceDeployments <> 1 then
+                return Error $"Both deployments of {service} already exist"
+            else
+                let (deployment, _) = serviceDeployments |> List.exactlyOne
+                let missingDeployment = oppositeDeployment deployment
+
+                install path service missingDeployment |> ignore
+                return Ok $"Deployed {service} {missingDeployment}"
+        }
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    let swapTraffic path service direction =
+        match direction with
+        | "old" -> Ok()
+        | "new" -> Ok()
+        | _ as dir -> Error $"Invalid direction {dir}"
+
+// let rollback path service = task {  }
+
 
 open Kubernetes
 open Types
+open Commands
 
-let result = getDeployments
+let path =
+    "/home/david/Documents/Projects/Smoothstack/Aline/dev-ops/kubernetes/local-helm"
+
+let result = blueGreen path Bank
