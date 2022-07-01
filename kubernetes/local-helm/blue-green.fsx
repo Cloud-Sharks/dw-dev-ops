@@ -126,7 +126,7 @@ module Kubernetes =
 
         pod
 
-    let getDeployments =
+    let getPods =
         let (>>=) m fn = Result.bind fn m
 
         let cliResult =
@@ -206,17 +206,35 @@ module Commands =
         |> Async.AwaitTask
         |> Async.RunSynchronously
 
+    // TODO: Use deployment age instead of age of first pod
+    let private podAge service deployment =
+        let podDeployments =
+            getPods
+            |> List.filter (fun d -> d.Service = service)
+            |> List.groupBy (fun d -> d.Deployment)
+
+        podDeployments
+        |> List.find (fun (dep, _) -> dep = deployment)
+        |> fun (_, podList) ->
+            podList
+            |> List.map (fun p -> p.CreationDate)
+            |> List.head
+
     let blueGreen path service =
         task {
-            let serviceDeployments =
-                getDeployments
+            let podDeployments =
+                getPods
                 |> List.filter (fun d -> d.Service = service)
                 |> List.groupBy (fun d -> d.Deployment)
 
-            if List.length serviceDeployments <> 1 then
+            let listLength = podDeployments |> List.length
+
+            if listLength = 0 then
+                return Error $"No deployments of {service} exist"
+            elif listLength = 2 then
                 return Error $"Both deployments of {service} already exist"
             else
-                let (deployment, _) = serviceDeployments |> List.exactlyOne
+                let (deployment, _) = podDeployments |> List.exactlyOne
                 let missingDeployment = oppositeDeployment deployment
 
                 install path service missingDeployment |> ignore
@@ -231,6 +249,55 @@ module Commands =
         | "new" -> Ok()
         | _ as dir -> Error $"Invalid direction {dir}"
 
+    let rollback path service =
+        task {
+            let podDeployments =
+                getPods
+                |> List.filter (fun d -> d.Service = service)
+                |> List.groupBy (fun d -> d.Deployment)
+
+            let listLength = podDeployments |> List.length
+
+            if listLength = 0 then
+                return Error $"No deployments of {service} exist"
+            elif listLength = 2 then
+                return Error $"Both deployments of {service} already exist"
+            else
+                let blueAge = podAge service Blue
+                let greenAge = podAge service Green
+
+                if blueAge > greenAge then
+                    uninstall path service Green |> ignore
+                    return Ok $"Uninstalled newer green deployment"
+                else
+                    uninstall path service Blue |> ignore
+                    return Ok $"Uninstalled newer blue deployment"
+        }
+
+    let deploy path service =
+        task {
+            let podDeployments =
+                getPods
+                |> List.filter (fun d -> d.Service = service)
+                |> List.groupBy (fun d -> d.Deployment)
+
+            let listLength = podDeployments |> List.length
+
+            if listLength = 0 then
+                return Error $"No deployments of {service} exist"
+            elif listLength = 2 then
+                return Error $"Both deployments of {service} already exist"
+            else
+                let blueAge = podAge service Blue
+                let greenAge = podAge service Green
+
+                if blueAge < greenAge then
+                    uninstall path service Green |> ignore
+                    return Ok $"Uninstalled old green deployment"
+                else
+                    uninstall path service Blue |> ignore
+                    return Ok $"Uninstalled old blue deployment"
+        }
 
 open Kubernetes
 open Types
