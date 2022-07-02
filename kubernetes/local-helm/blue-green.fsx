@@ -122,22 +122,21 @@ module Kubernetes =
             |> Ok
 
     let getPod args =
-        let (>>=) m fn = Result.bind fn m
         let service = args.Service |> parseService
         let deployment = args.Deployment |> parseDeployment
         let creationDate = args.PodName |> podStartTime
 
         let pod =
             service
-            >>= fun svc ->
-                    deployment
-                    >>= fun deploy ->
-                            creationDate
-                            >>= fun date ->
-                                    { Service = svc
-                                      Deployment = deploy
-                                      CreationDate = date }
-                                    |> Ok
+            |> Result.bind (fun service ->
+                deployment
+                |> Result.bind (fun deployment ->
+                    creationDate
+                    |> Result.bind (fun creationDate ->
+                        Ok
+                            { Service = service
+                              Deployment = deployment
+                              CreationDate = creationDate })))
 
         pod
 
