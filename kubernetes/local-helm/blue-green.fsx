@@ -69,9 +69,9 @@ module Helpers =
     open CliWrap.Buffered
 
     type TimeComparison =
-        | Earlier = -1
+        | Older = -1
         | Same = 0
-        | Later = 1
+        | Younger = 1
 
     let runCli target (arguments: string) workingDirectory =
         task {
@@ -228,7 +228,7 @@ module Commands =
                 |> Result.bind (fun blueAge ->
                     podAge service Green
                     |> Result.bind (fun greenAge ->
-                        if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Earlier then
+                        if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Younger then
                             uninstall path service Blue
                         else
                             uninstall path service Green)))
@@ -249,7 +249,7 @@ module Commands =
                 |> Result.bind (fun blueAge ->
                     podAge service Green
                     |> Result.bind (fun greenAge ->
-                        if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Earlier then
+                        if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Younger then
                             uninstall path service Green
                         else
                             uninstall path service Blue)))
@@ -260,4 +260,8 @@ open Commands
 let path =
     "/home/david/Documents/Projects/Smoothstack/Aline/dev-ops/kubernetes/local-helm"
 
-let results = [ rollback path Bank ]
+let results =
+    [ blueGreen path User
+      rollback path User ]
+
+printfn "%A" results
