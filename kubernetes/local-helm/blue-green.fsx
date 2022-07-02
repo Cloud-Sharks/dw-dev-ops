@@ -69,6 +69,11 @@ module Helpers =
     open CliWrap
     open CliWrap.Buffered
 
+    type TimeComparison =
+        | Earlier = -1
+        | Same = 0
+        | Later = 1
+
     let runCli target (arguments: string) workingDirectory =
         task {
             let! result =
@@ -235,14 +240,15 @@ module Commands =
             elif listLength = 1 then
                 $"Only one deployment of {service} exists"
             else
-                let blueAge = podAge service Blue
-                let greenAge = podAge service Green
-
                 let cmd =
-                    if blueAge > greenAge then
-                        uninstall path service Blue
-                    else
-                        uninstall path service Green
+                    podAge service Blue
+                    |> Result.bind (fun blueAge ->
+                        podAge service Green
+                        |> Result.bind (fun greenAge ->
+                            if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Earlier then
+                                uninstall path service Blue
+                            else
+                                uninstall path service Green))
 
                 match cmd with
                 | Ok msg -> msg
@@ -260,14 +266,15 @@ module Commands =
             if listLength <> 2 then
                 $"Both deployments of {service} are not up"
             else
-                let blueAge = podAge service Blue
-                let greenAge = podAge service Green
-
                 let cmd =
-                    if blueAge > greenAge then
-                        uninstall path service Green
-                    else
-                        uninstall path service Blue
+                    podAge service Blue
+                    |> Result.bind (fun blueAge ->
+                        podAge service Green
+                        |> Result.bind (fun greenAge ->
+                            if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Earlier then
+                                uninstall path service Green
+                            else
+                                uninstall path service Blue))
 
                 match cmd with
                 | Ok msg -> msg
