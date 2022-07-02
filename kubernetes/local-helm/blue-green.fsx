@@ -34,13 +34,13 @@ module Parsers =
         | "user" -> Ok User
         | "transaction" -> Ok Transaction
         | "underwriter" -> Ok Underwriter
-        | _ as service -> Error <| sprintf "Invalid service '%s'" service
+        | _ as service -> Error $"Invalid service {service}"
 
     let parseDeployment =
         function
         | "blue" -> Ok Blue
         | "green" -> Ok Green
-        | _ as deployment -> Error <| $"Invalid deployment {deployment}"
+        | _ as deployment -> Error $"Invalid deployment {deployment}"
 
     let parseCliCommand cliCommand =
         let matches = commandRegex.Match(cliCommand)
