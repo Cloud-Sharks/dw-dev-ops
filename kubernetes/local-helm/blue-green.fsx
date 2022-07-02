@@ -80,6 +80,7 @@ module Helpers =
                     .Wrap(target)
                     .WithWorkingDirectory(workingDirectory)
                     .WithArguments(arguments)
+                    .WithValidation(CommandResultValidation.None)
                     .ExecuteBufferedAsync()
 
             return
