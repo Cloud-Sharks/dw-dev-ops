@@ -141,7 +141,6 @@ module Kubernetes =
         pod
 
     let getPods =
-        let (>>=) m fn = Result.bind fn m
         let cliResult = runCli "kubectl" "get pods" "."
 
         cliResult
