@@ -65,13 +65,33 @@ module Parsers =
             else
                 Error <| sprintf "Invalid command '%s'" command
 
+module Helpers =
+    open CliWrap
+    open CliWrap.Buffered
+
+    let runCli target (arguments: string) workingDirectory =
+        task {
+            let! result =
+                Cli
+                    .Wrap(target)
+                    .WithWorkingDirectory(workingDirectory)
+                    .WithArguments(arguments)
+                    .ExecuteBufferedAsync()
+
+            return
+                match result.ExitCode with
+                | 0 -> Ok <| result.StandardOutput
+                | _ -> Error <| result.StandardError
+        }
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
 module Kubernetes =
     open Types
     open System.Text.RegularExpressions
     open System
     open Parsers
-    open CliWrap
-    open CliWrap.Buffered
+    open Helpers
 
     type Pod =
         { Service: Service
@@ -88,218 +108,172 @@ module Kubernetes =
 
     let private timeRegex = Regex("""Start Time:\s+(?<time>.*)""")
 
-    // TODO: Wrap in Result
-    let podStartTime podName =
-        task {
-            let! result =
-                Cli
-                    .Wrap("kubectl")
-                    .WithArguments($"describe pod {podName}")
-                    .ExecuteBufferedAsync()
+    let podStartTime (podName: string) =
+        let cliResult =
+            runCli $"kubectl" $"describe pod {podName}" "."
 
-            let matchGroups =
-                timeRegex.Match(result.StandardOutput).Groups
+        match cliResult with
+        | Error msg -> Error msg
+        | Ok msg ->
+            let matchGroups = timeRegex.Match(msg).Groups
 
-            return matchGroups.Item("time").Value |> DateTime.Parse
-        }
+            matchGroups.Item("time").Value
+            |> DateTime.Parse
+            |> Ok
 
     let getPod args =
         let (>>=) m fn = Result.bind fn m
         let service = args.Service |> parseService
         let deployment = args.Deployment |> parseDeployment
-
-        let creationDate =
-            args.PodName
-            |> podStartTime
-            |> Async.AwaitTask
-            |> Async.RunSynchronously
+        let creationDate = args.PodName |> podStartTime
 
         let pod =
             service
-            >>= fun s ->
+            >>= fun svc ->
                     deployment
-                    >>= fun d ->
-                            { Service = s
-                              Deployment = d
-                              CreationDate = creationDate }
-                            |> Ok
+                    >>= fun deploy ->
+                            creationDate
+                            >>= fun date ->
+                                    { Service = svc
+                                      Deployment = deploy
+                                      CreationDate = date }
+                                    |> Ok
 
         pod
 
     let getPods =
         let (>>=) m fn = Result.bind fn m
+        let cliResult = runCli "kubectl" "get pods" "."
 
-        let cliResult =
-            task {
-                let! result =
-                    Cli
-                        .Wrap("kubectl")
-                        .WithArguments("get pods")
-                        .ExecuteBufferedAsync()
+        cliResult
+        |> Result.bind (fun msg ->
+            let podNames = serviceRegex.Matches(msg)
 
-                return result
-            }
-            |> Async.AwaitTask
-            |> Async.RunSynchronously
+            Ok [ for podName in podNames do
+                     let service = podName.Groups.Item("service").Value
+                     let deployment = podName.Groups.Item("color").Value
 
-        let podNames =
-            serviceRegex.Matches(cliResult.StandardOutput)
+                     let pod =
+                         getPod
+                             { Deployment = deployment
+                               Service = service
+                               PodName = podName.Value }
 
-        [ for podName in podNames do
-              let service = podName.Groups.Item("service").Value
-              let deployment = podName.Groups.Item("color").Value
-
-              let deployment =
-                  getPod
-                      { Deployment = deployment
-                        Service = service
-                        PodName = podName.Value }
-
-              match deployment with
-              | Ok d -> d
-              | Error msg -> failwith msg ]
+                     match pod with
+                     | Ok pod -> pod
+                     | Error msg -> failwith msg ])
 
 module Commands =
     open Types
     open Kubernetes
-    open CliWrap
-    open CliWrap.Buffered
+    open Helpers
 
     let private oppositeDeployment =
         function
         | Blue -> Green
         | Green -> Blue
 
-    // TODO: Return result
-    let private install path service deployment =
-        task {
-            let args =
-                $"install_{service}_{deployment}".ToLower()
+    let private install path (service: Service) (deployment: Deployment) =
+        let args =
+            $"install_{service}_{deployment}".ToLower()
 
-            let! result =
-                Cli
-                    .Wrap("make")
-                    .WithArguments(args)
-                    .WithWorkingDirectory(path)
-                    .ExecuteBufferedAsync()
+        runCli "make" args path
 
-            return result
-        }
-        |> Async.AwaitTask
-        |> Async.RunSynchronously
+    let private uninstall path (service: Service) (deployment: Deployment) =
+        let args =
+            $"uninstall_{service}_{deployment}".ToLower()
 
-    // TODO: Return result
-    let private uninstall path service deployment =
-        task {
-            let args =
-                $"uninstall_{service}_{deployment}".ToLower()
-
-            let! result =
-                Cli
-                    .Wrap("make")
-                    .WithArguments(args)
-                    .WithWorkingDirectory(path)
-                    .ExecuteBufferedAsync()
-
-            return result
-        }
-        |> Async.AwaitTask
-        |> Async.RunSynchronously
+        runCli "make" args path
 
     // TODO: Use deployment age instead of age of first pod
     let private podAge service deployment =
-        let podDeployments =
-            getPods
-            |> List.filter (fun d -> d.Service = service)
-            |> List.groupBy (fun d -> d.Deployment)
-
-        podDeployments
-        |> List.find (fun (dep, _) -> dep = deployment)
-        |> fun (_, podList) ->
+        getPods
+        |> Result.map (fun podList ->
             podList
-            |> List.map (fun p -> p.CreationDate)
-            |> List.head
+            |> List.filter (fun p -> p.Service = service)
+            |> List.groupBy (fun p -> p.Deployment))
+        |> Result.map (fun groupedPods ->
+            groupedPods
+            |> List.find (fun (dep, _) -> dep = deployment)
+            |> fun (_, podList) ->
+                podList
+                |> List.map (fun p -> p.CreationDate)
+                |> List.head)
 
     let blueGreen path service =
-        task {
-            let podDeployments =
-                getPods
-                |> List.filter (fun d -> d.Service = service)
-                |> List.groupBy (fun d -> d.Deployment)
-
-            let listLength = podDeployments |> List.length
+        getPods
+        |> Result.map (fun podList ->
+            podList
+            |> List.filter (fun p -> p.Service = service)
+            |> List.groupBy (fun p -> p.Deployment))
+        |> Result.map (fun groupedPods ->
+            let listLength = groupedPods |> List.length
 
             if listLength = 0 then
-                return Error $"No deployments of {service} exist"
+                $"No deployments of {service} exist"
             elif listLength = 2 then
-                return Error $"Both deployments of {service} already exist"
+                $"Both deployments of {service} already exist"
             else
-                let (deployment, _) = podDeployments |> List.exactlyOne
+                let (deployment, _) = groupedPods |> List.exactlyOne
                 let missingDeployment = oppositeDeployment deployment
 
-                install path service missingDeployment |> ignore
-                return Ok $"Deployed {service} {missingDeployment}"
-        }
-        |> Async.AwaitTask
-        |> Async.RunSynchronously
+                let result = install path service missingDeployment
 
-    let swapTraffic path service direction =
-        match direction with
-        | "old" -> Ok()
-        | "new" -> Ok()
-        | _ as dir -> Error $"Invalid direction {dir}"
+                match result with
+                | Ok msg -> msg
+                | Error msg -> msg)
 
     let rollback path service =
-        task {
-            let podDeployments =
-                getPods
-                |> List.filter (fun d -> d.Service = service)
-                |> List.groupBy (fun d -> d.Deployment)
-
-            let listLength = podDeployments |> List.length
+        getPods
+        |> Result.map (fun podList ->
+            podList
+            |> List.filter (fun p -> p.Service = service)
+            |> List.groupBy (fun p -> p.Deployment))
+        |> Result.map (fun groupedPods ->
+            let listLength = groupedPods |> List.length
 
             if listLength = 0 then
-                return Error $"No deployments of {service} exist"
+                $"No deployments of {service} exist"
             elif listLength = 1 then
-                return Error $"Only one deployment of {service} exists"
+                $"Only one deployment of {service} exists"
             else
                 let blueAge = podAge service Blue
                 let greenAge = podAge service Green
 
-                if blueAge > greenAge then
-                    uninstall path service Green |> ignore
-                    return Ok $"Rolling back green deployment"
-                else
-                    uninstall path service Blue |> ignore
-                    return Ok $"Rolling back blue deployment"
-        }
-        |> Async.AwaitTask
-        |> Async.RunSynchronously
+                let cmd =
+                    if blueAge > greenAge then
+                        uninstall path service Green
+                    else
+                        uninstall path service Blue
+
+                match cmd with
+                | Ok msg -> msg
+                | Error msg -> msg)
 
     let deploy path service =
-        task {
-            let podDeployments =
-                getPods
-                |> List.filter (fun d -> d.Service = service)
-                |> List.groupBy (fun d -> d.Deployment)
-
-            let listLength = podDeployments |> List.length
+        getPods
+        |> Result.map (fun podList ->
+            podList
+            |> List.filter (fun p -> p.Service = service)
+            |> List.groupBy (fun p -> p.Deployment))
+        |> Result.map (fun groupedPods ->
+            let listLength = groupedPods |> List.length
 
             if listLength <> 2 then
-                return Error $"Both deployments of {service} are not up"
+                $"Both deployments of {service} are not up"
             else
                 let blueAge = podAge service Blue
                 let greenAge = podAge service Green
 
-                if blueAge > greenAge then
-                    uninstall path service Green |> ignore
-                    return Ok $"Uninstalled old green deployment"
-                else
-                    uninstall path service Blue |> ignore
-                    return Ok $"Uninstalled old blue deployment"
-        }
-        |> Async.AwaitTask
-        |> Async.RunSynchronously
+                let cmd =
+                    if blueAge > greenAge then
+                        uninstall path service Green
+                    else
+                        uninstall path service Blue
+
+                match cmd with
+                | Ok msg -> msg
+                | Error msg -> msg)
 
 open Types
 open Commands
