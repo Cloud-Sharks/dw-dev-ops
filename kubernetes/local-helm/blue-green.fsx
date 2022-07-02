@@ -268,10 +268,10 @@ module Commands =
 
                 if blueAge > greenAge then
                     uninstall path service Green |> ignore
-                    return Ok $"Uninstalled newer green deployment"
+                    return Ok $"Rolling back green deployment"
                 else
                     uninstall path service Blue |> ignore
-                    return Ok $"Uninstalled newer blue deployment"
+                    return Ok $"Rolling back blue deployment"
         }
         |> Async.AwaitTask
         |> Async.RunSynchronously
@@ -291,7 +291,7 @@ module Commands =
                 let blueAge = podAge service Blue
                 let greenAge = podAge service Green
 
-                if blueAge < greenAge then
+                if blueAge > greenAge then
                     uninstall path service Green |> ignore
                     return Ok $"Uninstalled old green deployment"
                 else
