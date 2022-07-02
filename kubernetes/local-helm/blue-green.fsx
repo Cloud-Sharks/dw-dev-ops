@@ -55,15 +55,14 @@ module Parsers =
         let service = matches.Groups.Item("service").Value
         let command = matches.Groups.Item("command").Value
 
-        match parseService service with
-        | Error msg -> Error msg
-        | Ok service ->
+        parseService service
+        |> Result.bind (fun service ->
             let isValidCommand = commands |> List.contains command
 
             if isValidCommand then
                 Ok <| { Service = service; Command = command }
             else
-                Error <| sprintf "Invalid command '%s'" command
+                Error <| sprintf "Invalid command '%s'" command)
 
 module Helpers =
     open CliWrap
@@ -115,12 +114,9 @@ module Kubernetes =
 
     let podStartTime (podName: string) =
         runCli "kubectl" $"describe pod {podName}" "."
-        |> Result.bind (fun msg ->
+        |> Result.map (fun msg ->
             let matchGroups = timeRegex.Match(msg).Groups
-
-            matchGroups.Item("time").Value
-            |> DateTime.Parse
-            |> Ok)
+            matchGroups.Item("time").Value |> DateTime.Parse)
 
     let getPod args =
         let service = args.Service |> parseService
@@ -133,11 +129,10 @@ module Kubernetes =
                 deployment
                 |> Result.bind (fun deployment ->
                     creationDate
-                    |> Result.bind (fun creationDate ->
-                        Ok
-                            { Service = service
-                              Deployment = deployment
-                              CreationDate = creationDate })))
+                    |> Result.map (fun creationDate ->
+                        { Service = service
+                          Deployment = deployment
+                          CreationDate = creationDate })))
 
         pod
 
