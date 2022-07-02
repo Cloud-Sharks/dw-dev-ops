@@ -118,10 +118,10 @@ module Kubernetes =
             let matchGroups = timeRegex.Match(msg).Groups
             matchGroups.Item("time").Value |> DateTime.Parse)
 
-    let getPod args =
-        let service = args.Service |> parseService
-        let deployment = args.Deployment |> parseDeployment
-        let creationDate = args.PodName |> podStartTime
+    let getPod fnArgs =
+        let service = fnArgs.Service |> parseService
+        let deployment = fnArgs.Deployment |> parseDeployment
+        let creationDate = fnArgs.PodName |> podStartTime
 
         let pod =
             service
