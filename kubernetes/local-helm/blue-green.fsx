@@ -6,7 +6,7 @@
 // bank new
 
 // bank rollback
-// bank deploy
+// bank complete
 
 module Types =
     type Service =
@@ -233,7 +233,7 @@ module Commands =
                         else
                             uninstall path service Green)))
 
-    let deploy path service =
+    let complete path service =
         getPods
         |> Result.map (fun podList ->
             podList
