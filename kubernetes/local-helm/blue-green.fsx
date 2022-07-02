@@ -207,9 +207,9 @@ module Commands =
             let listLength = groupedPods |> List.length
 
             if listLength = 0 then
-                $"No deployments of {service} exist"
+                $"Cannot implement blue/green deployment. No deployments of {service} exist"
             elif listLength = 2 then
-                $"Both deployments of {service} already exist"
+                $"Cannot implement blue/green deployment. Both deployments of {service} already exist"
             else
                 let (deployment, _) = groupedPods |> List.exactlyOne
                 let missingDeployment = oppositeDeployment deployment
@@ -230,9 +230,9 @@ module Commands =
             let listLength = groupedPods |> List.length
 
             if listLength = 0 then
-                $"No deployments of {service} exist"
+                $"Cannot rollback. No deployments of {service} exist"
             elif listLength = 1 then
-                $"Only one deployment of {service} exists"
+                $"Cannot rollback. Only one deployment of {service} exists"
             else
                 let cmd =
                     podAge service Blue
@@ -258,7 +258,7 @@ module Commands =
             let listLength = groupedPods |> List.length
 
             if listLength <> 2 then
-                $"Both deployments of {service} are not up"
+                $"Cannot deploy. Both deployments of {service} are not up"
             else
                 let cmd =
                     podAge service Blue
