@@ -2,11 +2,14 @@
 
 // bank bg
 
+// bank service <install service for oldest service>
+
 // bank old
 // bank new
 
 // bank rollback
 // bank complete
+
 
 module Types =
     type Service =
@@ -166,6 +169,10 @@ module Commands =
         | Blue -> Green
         | Green -> Blue
 
+    let private installk8Service (path: string) (service: Service) (deployment: Deployment) =
+
+        Ok ""
+
     let private install path (service: Service) (deployment: Deployment) =
         let args =
             $"install_{service}_{deployment}".ToLower()
@@ -254,6 +261,31 @@ module Commands =
                             uninstall path service Green
                         else
                             uninstall path service Blue)))
+
+    /// Installs a kubernetes service that points to the oldeset or only deployment in the cluster
+    let installKubernetesService path service =
+        getPods
+        |> Result.map (fun podList ->
+            podList
+            |> List.filter (fun p -> p.Service = service)
+            |> List.groupBy (fun p -> p.Deployment))
+        |> Result.bind (fun groupedPods ->
+            let listLength = groupedPods |> List.length
+
+            if listLength = 0 then
+                Error $"Cannot install service. No deployments exist"
+            elif listLength = 1 then
+                let deploymentColor = groupedPods |> List.exactlyOne |> fst
+                installk8Service path service deploymentColor
+            else
+                podAge service Blue
+                |> Result.bind (fun blueAge ->
+                    podAge service Green
+                    |> Result.bind (fun greenAge ->
+                        if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Older then
+                            installk8Service path service Blue
+                        else
+                            installk8Service path service Green)))
 
 open Types
 open Commands
