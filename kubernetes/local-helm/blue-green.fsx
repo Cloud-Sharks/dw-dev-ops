@@ -240,9 +240,9 @@ module Commands =
 
                 let cmd =
                     if blueAge > greenAge then
-                        uninstall path service Green
-                    else
                         uninstall path service Blue
+                    else
+                        uninstall path service Green
 
                 match cmd with
                 | Ok msg -> msg
