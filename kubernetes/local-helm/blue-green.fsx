@@ -260,8 +260,8 @@ module Commands =
 
             if listLength = 0 then
                 return Error $"No deployments of {service} exist"
-            elif listLength = 2 then
-                return Error $"Both deployments of {service} already exist"
+            elif listLength = 1 then
+                return Error $"Only one deployment of {service} exists"
             else
                 let blueAge = podAge service Blue
                 let greenAge = podAge service Green
@@ -301,13 +301,10 @@ module Commands =
         |> Async.AwaitTask
         |> Async.RunSynchronously
 
-open Kubernetes
 open Types
 open Commands
 
 let path =
     "/home/david/Documents/Projects/Smoothstack/Aline/dev-ops/kubernetes/local-helm"
 
-let results =
-    [ blueGreen path Bank
-      deploy path Bank ]
+let results = [ rollback path Bank ]
