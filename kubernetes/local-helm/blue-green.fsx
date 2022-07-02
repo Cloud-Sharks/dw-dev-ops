@@ -143,22 +143,22 @@ module Kubernetes =
 
     let getPods =
         runCli "kubectl" "get pods" "."
-        |> Result.bind (fun msg ->
+        |> Result.map (fun msg ->
             let podNames = serviceRegex.Matches(msg)
 
-            Ok [ for podName in podNames do
-                     let service = podName.Groups.Item("service").Value
-                     let deployment = podName.Groups.Item("color").Value
+            [ for podName in podNames do
+                  let service = podName.Groups.Item("service").Value
+                  let deployment = podName.Groups.Item("color").Value
 
-                     let pod =
-                         getPod
-                             { Deployment = deployment
-                               Service = service
-                               PodName = podName.Value }
+                  let pod =
+                      getPod
+                          { Deployment = deployment
+                            Service = service
+                            PodName = podName.Value }
 
-                     match pod with
-                     | Ok pod -> pod
-                     | Error msg -> failwith msg ])
+                  match pod with
+                  | Ok pod -> pod
+                  | Error msg -> failwith msg ])
 
 module Commands =
     open Types
