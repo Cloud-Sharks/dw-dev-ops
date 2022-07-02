@@ -203,22 +203,17 @@ module Commands =
             podList
             |> List.filter (fun p -> p.Service = service)
             |> List.groupBy (fun p -> p.Deployment))
-        |> Result.map (fun groupedPods ->
+        |> Result.bind (fun groupedPods ->
             let listLength = groupedPods |> List.length
 
             if listLength = 0 then
-                $"Cannot implement blue/green deployment. No deployments of {service} exist"
+                Error $"Cannot implement blue/green deployment. No deployments of {service} exist"
             elif listLength = 2 then
-                $"Cannot implement blue/green deployment. Both deployments of {service} already exist"
+                Error $"Cannot implement blue/green deployment. Both deployments of {service} already exist"
             else
                 let (deployment, _) = groupedPods |> List.exactlyOne
                 let missingDeployment = oppositeDeployment deployment
-
-                let result = install path service missingDeployment
-
-                match result with
-                | Ok msg -> msg
-                | Error msg -> msg)
+                install path service missingDeployment)
 
     let rollback path service =
         getPods
@@ -226,27 +221,22 @@ module Commands =
             podList
             |> List.filter (fun p -> p.Service = service)
             |> List.groupBy (fun p -> p.Deployment))
-        |> Result.map (fun groupedPods ->
+        |> Result.bind (fun groupedPods ->
             let listLength = groupedPods |> List.length
 
             if listLength = 0 then
-                $"Cannot rollback. No deployments of {service} exist"
+                Error $"Cannot rollback. No deployments of {service} exist"
             elif listLength = 1 then
-                $"Cannot rollback. Only one deployment of {service} exists"
+                Error $"Cannot rollback. Only one deployment of {service} exists"
             else
-                let cmd =
-                    podAge service Blue
-                    |> Result.bind (fun blueAge ->
-                        podAge service Green
-                        |> Result.bind (fun greenAge ->
-                            if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Earlier then
-                                uninstall path service Blue
-                            else
-                                uninstall path service Green))
-
-                match cmd with
-                | Ok msg -> msg
-                | Error msg -> msg)
+                podAge service Blue
+                |> Result.bind (fun blueAge ->
+                    podAge service Green
+                    |> Result.bind (fun greenAge ->
+                        if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Earlier then
+                            uninstall path service Blue
+                        else
+                            uninstall path service Green)))
 
     let deploy path service =
         getPods
@@ -254,25 +244,20 @@ module Commands =
             podList
             |> List.filter (fun p -> p.Service = service)
             |> List.groupBy (fun p -> p.Deployment))
-        |> Result.map (fun groupedPods ->
+        |> Result.bind (fun groupedPods ->
             let listLength = groupedPods |> List.length
 
             if listLength <> 2 then
-                $"Cannot deploy. Both deployments of {service} are not up"
+                Error $"Cannot deploy. Both deployments of {service} are not up"
             else
-                let cmd =
-                    podAge service Blue
-                    |> Result.bind (fun blueAge ->
-                        podAge service Green
-                        |> Result.bind (fun greenAge ->
-                            if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Earlier then
-                                uninstall path service Green
-                            else
-                                uninstall path service Blue))
-
-                match cmd with
-                | Ok msg -> msg
-                | Error msg -> msg)
+                podAge service Blue
+                |> Result.bind (fun blueAge ->
+                    podAge service Green
+                    |> Result.bind (fun greenAge ->
+                        if enum <| blueAge.CompareTo(greenAge) = TimeComparison.Earlier then
+                            uninstall path service Green
+                        else
+                            uninstall path service Blue)))
 
 open Types
 open Commands
