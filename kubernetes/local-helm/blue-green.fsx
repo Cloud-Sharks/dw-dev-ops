@@ -114,17 +114,13 @@ module Kubernetes =
     let private timeRegex = Regex("""Start Time:\s+(?<time>.*)""")
 
     let podStartTime (podName: string) =
-        let cliResult =
-            runCli $"kubectl" $"describe pod {podName}" "."
-
-        match cliResult with
-        | Error msg -> Error msg
-        | Ok msg ->
+        runCli $"kubectl" $"describe pod {podName}" "."
+        |> Result.bind (fun msg ->
             let matchGroups = timeRegex.Match(msg).Groups
 
             matchGroups.Item("time").Value
             |> DateTime.Parse
-            |> Ok
+            |> Ok)
 
     let getPod args =
         let service = args.Service |> parseService
