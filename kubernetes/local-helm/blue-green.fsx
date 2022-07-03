@@ -230,7 +230,7 @@ module Commands =
                         else
                             uninstall path service Green)))
 
-    let complete path service =
+    let completeDeployment path service =
         getPods
         |> Result.map (fun podList ->
             podList
@@ -267,7 +267,7 @@ let result =
                 match command with
                 | BlueGreen -> blueGreen path service
                 | Rollback -> rollback path service
-                | CompleteDeployment -> complete path service
+                | CompleteDeployment -> completeDeployment path service
                 | _ as cmd -> Error $"{cmd} Not implemented"))
     | _ ->
         Error "Invalid arguments passed. Example arguments (bank|transaction|user|underwriter) (bg|rollback|complete)"
