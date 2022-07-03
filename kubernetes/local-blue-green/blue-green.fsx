@@ -18,8 +18,6 @@ module Types =
         | Rollback
         | CompleteDeployment
 
-    type CliCommand = { Service: Service; Command: Command }
-
 module Helpers =
     open CliWrap
     open CliWrap.Buffered
@@ -49,10 +47,6 @@ module Helpers =
 
 module Parsers =
     open Types
-    open System.Text.RegularExpressions
-
-    let private commandRegex =
-        Regex("""^(?<service>\w+)\s+(?<command>\w+)$""")
 
     let parseService =
         function
@@ -76,16 +70,6 @@ module Parsers =
         | "rollback" -> Ok Rollback
         | "complete" -> Ok CompleteDeployment
         | _ as cmd -> Error $"Invalid command: '{cmd}'"
-
-    let parseCliCommand cliCommand =
-        let matches = commandRegex.Match(cliCommand)
-        let service = matches.Groups.Item("service").Value
-        let command = matches.Groups.Item("command").Value
-
-        parseService service
-        |> Result.bind (fun service ->
-            parseCommand command
-            |> Result.map (fun command -> { Service = service; Command = command }))
 
 module Kubernetes =
     open Types
