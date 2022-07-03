@@ -274,4 +274,4 @@ let result =
 
 match result with
 | Ok msg -> printfn "%s" msg
-| Error msg -> printfn "%s" msg
+| Error msg -> failwithf "%s" msg
