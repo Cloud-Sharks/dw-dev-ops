@@ -1,16 +1,5 @@
 #r "nuget: CliWrap, 3.4.4"
 
-// bank bg
-
-// bank service <install service for oldest service>
-
-// bank old
-// bank new
-
-// bank rollback
-// bank complete
-
-
 module Types =
     type Service =
         | Bank
@@ -22,7 +11,14 @@ module Types =
         | Blue
         | Green
 
-    type Command = { Service: Service; Command: string }
+    type Command =
+        | BlueGreen
+        | SwitchOld
+        | SwitchNew
+        | Rollback
+        | CompleteDeployment
+
+    type CliCommand = { Service: Service; Command: Command }
 
 module Parsers =
     open Types
@@ -45,27 +41,24 @@ module Parsers =
         | "green" -> Ok Green
         | _ as deployment -> Error $"Invalid deployment {deployment}"
 
+    let parseCommand =
+        function
+        | "bg" -> Ok BlueGreen
+        | "old" -> Ok SwitchOld
+        | "new" -> Ok SwitchNew
+        | "rollback" -> Ok Rollback
+        | "complete" -> Ok CompleteDeployment
+        | _ as cmd -> Error $"Invalid cmd {cmd}"
+
     let parseCliCommand cliCommand =
         let matches = commandRegex.Match(cliCommand)
-
-        let commands =
-            [ "bg"
-              "old"
-              "new"
-              "rollback"
-              "deploy" ]
-
         let service = matches.Groups.Item("service").Value
         let command = matches.Groups.Item("command").Value
 
         parseService service
         |> Result.bind (fun service ->
-            let isValidCommand = commands |> List.contains command
-
-            if isValidCommand then
-                Ok <| { Service = service; Command = command }
-            else
-                Error <| sprintf "Invalid command '%s'" command)
+            parseCommand command
+            |> Result.map (fun command -> { Service = service; Command = command }))
 
 module Helpers =
     open CliWrap
@@ -289,12 +282,7 @@ module Commands =
 
 open Types
 open Commands
+open System
 
-let path =
-    "/home/david/Documents/Projects/Smoothstack/Aline/dev-ops/kubernetes/local-helm"
-
-let results =
-    [ blueGreen path User
-      rollback path User ]
-
-printfn "%A" results
+let path = Environment.CurrentDirectory
+let args = fsi.CommandLineArgs
