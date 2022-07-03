@@ -88,7 +88,7 @@ module Kubernetes =
           PodName: string
           Service: string }
 
-    let private serviceRegex =
+    let private podNameRegex =
         Regex("""(?<service>\w+)-(?<color>blue|green)(-.+?){2}\b""")
 
     let private timeRegex = Regex("""Start Time:\s+(?<time>.*)""")
@@ -120,7 +120,7 @@ module Kubernetes =
     let getPods =
         runCli "kubectl" "get pods" "."
         |> Result.map (fun msg ->
-            let podNames = serviceRegex.Matches(msg)
+            let podNames = podNameRegex.Matches(msg)
 
             [ for podName in podNames do
                   let service = podName.Groups.Item("service").Value
