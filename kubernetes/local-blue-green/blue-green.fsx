@@ -54,7 +54,7 @@ module Parsers =
         | "user" -> Ok User
         | "transaction" -> Ok Transaction
         | "underwriter" -> Ok Underwriter
-        | _ as service -> Error $"Invalid service {service}"
+        | _ as service -> Error $"Invalid service: '{service}'"
 
     let parseDeployment =
         function
