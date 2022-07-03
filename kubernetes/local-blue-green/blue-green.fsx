@@ -149,8 +149,7 @@ module Kubernetes =
             |> fun (_, podList) ->
                 podList
                 |> List.map (fun p -> p.CreationDate)
-                |> List.sortByDescending id
-                |> List.head)
+                |> List.max)
 
 module Commands =
     open Types
