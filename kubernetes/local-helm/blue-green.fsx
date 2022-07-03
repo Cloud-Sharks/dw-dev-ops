@@ -20,6 +20,33 @@ module Types =
 
     type CliCommand = { Service: Service; Command: Command }
 
+module Helpers =
+    open CliWrap
+    open CliWrap.Buffered
+
+    type TimeComparison =
+        | Older = -1
+        | Same = 0
+        | Younger = 1
+
+    let runCli target (arguments: string) workingDirectory =
+        task {
+            let! result =
+                Cli
+                    .Wrap(target)
+                    .WithWorkingDirectory(workingDirectory)
+                    .WithArguments(arguments)
+                    .WithValidation(CommandResultValidation.None)
+                    .ExecuteBufferedAsync()
+
+            return
+                match result.ExitCode with
+                | 0 -> Ok <| result.StandardOutput
+                | _ -> Error <| result.StandardError
+        }
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
 module Parsers =
     open Types
     open System.Text.RegularExpressions
@@ -59,33 +86,6 @@ module Parsers =
         |> Result.bind (fun service ->
             parseCommand command
             |> Result.map (fun command -> { Service = service; Command = command }))
-
-module Helpers =
-    open CliWrap
-    open CliWrap.Buffered
-
-    type TimeComparison =
-        | Older = -1
-        | Same = 0
-        | Younger = 1
-
-    let runCli target (arguments: string) workingDirectory =
-        task {
-            let! result =
-                Cli
-                    .Wrap(target)
-                    .WithWorkingDirectory(workingDirectory)
-                    .WithArguments(arguments)
-                    .WithValidation(CommandResultValidation.None)
-                    .ExecuteBufferedAsync()
-
-            return
-                match result.ExitCode with
-                | 0 -> Ok <| result.StandardOutput
-                | _ -> Error <| result.StandardError
-        }
-        |> Async.AwaitTask
-        |> Async.RunSynchronously
 
 module Kubernetes =
     open Types
