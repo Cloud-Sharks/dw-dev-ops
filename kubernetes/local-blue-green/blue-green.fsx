@@ -136,6 +136,21 @@ module Kubernetes =
                   | Ok pod -> pod
                   | Error msg -> failwith msg ])
 
+    // TODO: Use deployment age instead of age of first pod
+    let podAge service deployment =
+        getPods
+        |> Result.map (fun podList ->
+            podList
+            |> List.filter (fun p -> p.Service = service)
+            |> List.groupBy (fun p -> p.Deployment))
+        |> Result.map (fun groupedPods ->
+            groupedPods
+            |> List.find (fun (dep, _) -> dep = deployment)
+            |> fun (_, podList) ->
+                podList
+                |> List.map (fun p -> p.CreationDate)
+                |> List.head)
+
 module Commands =
     open Types
     open Kubernetes
@@ -157,21 +172,6 @@ module Commands =
             $"uninstall_{service}_{deployment}".ToLower()
 
         runCli "make" args path
-
-    // TODO: Use deployment age instead of age of first pod
-    let private podAge service deployment =
-        getPods
-        |> Result.map (fun podList ->
-            podList
-            |> List.filter (fun p -> p.Service = service)
-            |> List.groupBy (fun p -> p.Deployment))
-        |> Result.map (fun groupedPods ->
-            groupedPods
-            |> List.find (fun (dep, _) -> dep = deployment)
-            |> fun (_, podList) ->
-                podList
-                |> List.map (fun p -> p.CreationDate)
-                |> List.head)
 
     let blueGreen path service =
         getPods
