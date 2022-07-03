@@ -66,7 +66,7 @@ module Parsers =
         function
         | "blue" -> Ok Blue
         | "green" -> Ok Green
-        | _ as deployment -> Error $"Invalid deployment {deployment}"
+        | _ as deployment -> Error $"Invalid deployment: '{deployment}'"
 
     let parseCommand =
         function
@@ -75,7 +75,7 @@ module Parsers =
         | "new" -> Ok SwitchNew
         | "rollback" -> Ok Rollback
         | "complete" -> Ok CompleteDeployment
-        | _ as cmd -> Error $"Invalid cmd {cmd}"
+        | _ as cmd -> Error $"Invalid command: '{cmd}'"
 
     let parseCliCommand cliCommand =
         let matches = commandRegex.Match(cliCommand)
@@ -253,7 +253,25 @@ module Commands =
 
 open Types
 open Commands
-open System
+open Parsers
 
-let path = Environment.CurrentDirectory
 let args = fsi.CommandLineArgs
+
+let result =
+    match args with
+    | [| path; service; command |] ->
+        parseService service
+        |> Result.bind (fun service ->
+            parseCommand command
+            |> Result.bind (fun command ->
+                match command with
+                | BlueGreen -> blueGreen path service
+                | Rollback -> rollback path service
+                | CompleteDeployment -> complete path service
+                | _ as cmd -> Error $"{cmd} Not implemented"))
+    | _ ->
+        Error "Invalid arguments passed. Example arguments (bank|transaction|user|underwriter) (bg|rollback|complete)"
+
+match result with
+| Ok msg -> printfn "%s" msg
+| Error msg -> printfn "%s" msg
