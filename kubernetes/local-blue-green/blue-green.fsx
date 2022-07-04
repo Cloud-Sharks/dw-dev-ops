@@ -95,8 +95,8 @@ module Kubernetes =
 
     let podStartTime (podName: string) =
         runCli "kubectl" $"describe pod {podName}" "."
-        |> Result.map (fun msg ->
-            let matchGroups = timeRegex.Match(msg).Groups
+        |> Result.map (fun cliResult ->
+            let matchGroups = timeRegex.Match(cliResult).Groups
             matchGroups.Item("time").Value |> DateTime.Parse)
 
     let getPod fnArgs =
@@ -116,8 +116,8 @@ module Kubernetes =
 
     let getPods =
         runCli "kubectl" "get pods" "."
-        |> Result.map (fun msg ->
-            let podNames = podNameRegex.Matches(msg)
+        |> Result.map (fun cliResult ->
+            let podNames = podNameRegex.Matches(cliResult)
 
             [ for podName in podNames do
                   let service = podName.Groups.Item("service").Value
