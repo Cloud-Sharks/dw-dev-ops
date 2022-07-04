@@ -104,18 +104,15 @@ module Kubernetes =
         let deployment = fnArgs.Deployment |> parseDeployment
         let creationDate = fnArgs.PodName |> podStartTime
 
-        let pod =
-            service
-            |> Result.bind (fun service ->
-                deployment
-                |> Result.bind (fun deployment ->
-                    creationDate
-                    |> Result.map (fun creationDate ->
-                        { Service = service
-                          Deployment = deployment
-                          CreationDate = creationDate })))
-
-        pod
+        service
+        |> Result.bind (fun service ->
+            deployment
+            |> Result.bind (fun deployment ->
+                creationDate
+                |> Result.map (fun creationDate ->
+                    { Service = service
+                      Deployment = deployment
+                      CreationDate = creationDate })))
 
     let getPods =
         runCli "kubectl" "get pods" "."
