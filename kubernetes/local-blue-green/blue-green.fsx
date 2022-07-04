@@ -184,8 +184,12 @@ module Commands =
             elif listLength = 2 then
                 Error $"Cannot implement blue/green deployment. Both deployments of {service} already exist"
             else
-                let (deployment, _) = groupedPods |> List.exactlyOne
-                let missingDeployment = oppositeDeployment deployment
+                let missingDeployment = 
+                    groupedPods 
+                    |> List.exactlyOne
+                    |> fst
+                    |> oppositeDeployment
+
                 install path service missingDeployment)
 
     let rollback path service =
