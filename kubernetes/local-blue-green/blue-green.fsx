@@ -184,8 +184,8 @@ module Commands =
             elif listLength = 2 then
                 Error $"Cannot implement blue/green deployment. Both deployments of {service} already exist"
             else
-                let missingDeployment = 
-                    groupedPods 
+                let missingDeployment =
+                    groupedPods
                     |> List.exactlyOne
                     |> fst
                     |> oppositeDeployment
@@ -244,15 +244,15 @@ let args = fsi.CommandLineArgs
 
 let result =
     match args with
-    | [| path; service; command |] ->
+    | [| _; makefilePath; service; command |] ->
         parseService service
         |> Result.bind (fun service ->
             parseCommand command
             |> Result.bind (fun command ->
                 match command with
-                | BlueGreen -> blueGreen path service
-                | Rollback -> rollback path service
-                | CompleteDeployment -> completeDeployment path service
+                | BlueGreen -> blueGreen makefilePath service
+                | Rollback -> rollback makefilePath service
+                | CompleteDeployment -> completeDeployment makefilePath service
                 | _ as cmd -> Error $"{cmd} Not implemented"))
     | _ ->
         Error "Invalid arguments passed. Example arguments (bank|transaction|user|underwriter) (bg|rollback|complete)"
