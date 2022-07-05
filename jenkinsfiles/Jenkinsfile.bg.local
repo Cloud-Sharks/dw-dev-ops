@@ -36,7 +36,7 @@ pipeline {
 
       steps {
         dir("${DEVOPS_DIR}/kubernetes/local-blue-green") {
-          sh "dotnet fsi blue-green.fsx ${serviceName} bg"
+          sh "dotnet fsi blue-green.fsx . ${serviceName} bg"
         }
       }
     }
@@ -50,7 +50,7 @@ pipeline {
 
       steps {
         dir("${DEVOPS_DIR}/kubernetes/local-blue-green") {
-          sh "dotnet fsi blue-green.fsx ${serviceName} rollback"
+          sh "dotnet fsi blue-green.fsx . ${serviceName} rollback"
         }
       }
     }
@@ -64,7 +64,7 @@ pipeline {
 
       steps {
         dir("${DEVOPS_DIR}/kubernetes/local-blue-green") {
-          sh "dotnet fsi blue-green.fsx ${serviceName} complete"
+          sh "dotnet fsi blue-green.fsx . ${serviceName} complete"
         }
       }
     }
