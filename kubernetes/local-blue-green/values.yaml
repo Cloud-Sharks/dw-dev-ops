@@ -3,5 +3,3 @@ namespace: default
 repository: captainsalt
 
 resources:
-  limits:
-    memory: 2G
