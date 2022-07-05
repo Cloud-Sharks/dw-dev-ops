@@ -1,4 +1,3 @@
-include .env
 init: configure
 
 install_green: install_bank_green install_user_green install_transaction_green install_underwriter_green
