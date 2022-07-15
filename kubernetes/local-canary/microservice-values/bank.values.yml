@@ -1,0 +1,13 @@
+serviceName: bank
+
+image:
+  tag: stable
+
+ports:
+  exposedPort: 8083
+  nodePort: 30001
+
+strategy:
+  type: RollingUpdate
+
+replicas: 2

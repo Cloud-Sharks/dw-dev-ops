@@ -1,0 +1,12 @@
+namespace: default
+
+aws:
+  ecrRepository: null
+
+resources:
+  requests:
+    cpu: 150m
+    memory: 250M
+  limits:
+    cpu: 500m
+    memory: 400M
