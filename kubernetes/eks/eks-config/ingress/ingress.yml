@@ -7,7 +7,7 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: instance
-    external-dns.alpha.kubernetes.io/hostname: dev.dw.cloudsharks.name
+    external-dns.alpha.kubernetes.io/hostname: prod.dw.theblackeyedbeans.net
 spec:
   rules:
     - http:
