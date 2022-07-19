@@ -1,11 +1,11 @@
 variable "environment" {
   type        = string
   description = "Deployment Environment"
+}
 
-  validation {
-    condition     = can(regex("^(production|staging|development)$", var.environment))
-    error_message = "Invalid environment provided. Must be 'production', 'staging' or 'development'."
-  }
+variable "owner" {
+  type        = string
+  description = "Owner of the project"
 }
 
 ################################################################################
@@ -42,19 +42,17 @@ variable "public_subnets" {
   description = "Public subnet CIDR blocks"
 }
 
+variable "eks_cluster_name" {
+  type        = string
+  description = "Name of the eks cluster that runs in this VPC"
+}
+
 ################################################################################
-# Instances
+# Bastion
 ################################################################################
 
 variable "key_name" {
   type        = string
-  description = "Name of key pair to access EC2 instances"
+  description = "Name of the keypair to use with the created instance"
 }
 
-################################################################################
-# S3
-################################################################################
-variable "bucket_name" {
-  type        = string
-  description = "Name of the S3 bucket"
-}
