@@ -1,0 +1,311 @@
+// Leave blank
+def microserviceImage = ''
+def serviceName = ''
+
+pipeline {
+  agent any
+
+  tools {
+    maven 'Maven 3.8.4'
+  }
+
+  environment {
+    TF_JSON = ''
+    JENKINS_JSON = ''
+    AWS_DEFAULT_REGION = ''
+    AWS_PROFILE = '${AWS_PROFILE}'
+  }
+
+  stages {
+    stage('Setup environment variables') {
+      steps {
+        script {
+          configFileProvider([configFile(fileId: 'dw-jenkins-config', variable: 'JENKINS_CONFIG')]) {
+            JENKINS_JSON = bash("cat ${JENKINS_CONFIG}")
+          }
+
+          TF_JSON = getTerraformSecret()
+          AWS_DEFAULT_REGION = readJSON(text: TF_JSON)['region']
+
+          serviceName = getServiceName(GIT_URL)
+          microserviceImage = "${serviceName}:${shortCommitHash()}"
+        }
+      }
+    }
+
+    stage('Update repository submodules') {
+      steps {
+        sh 'git submodule init'
+        sh 'git submodule update'
+      }
+    }
+
+    stage('Run unit tests') {
+      steps {
+        sh 'mvn clean install test'
+      }
+    }
+
+    stage('Package Maven Project') {
+      steps {
+        sh 'mvn package -Dmaven.test.skip=true'
+      }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        script {
+          sh "docker build -t ${microserviceImage} ."
+        }
+      }
+    }
+
+    stage('Push docker images to ECR') {
+      steps {
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'DW-Jenkins-AWS-Credentials',
+          accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+        {
+          script {
+            def ecrUrlProd = readJSON(text: JENKINS_JSON)['ecrRepositoryUrlProd']
+            def region = readJSON(text: TF_JSON)['region']
+            def commitHash = shortCommitHash()
+            def ecrRepository = "dw-${serviceName}-microservice"
+
+            def ecrTagLatest = "${ecrUrlProd}/${ecrRepository}"
+            def ecrTagHash = "${ecrUrlProd}/${ecrRepository}:${commitHash}"
+
+            sh "docker tag ${microserviceImage} ${ecrTagLatest}"
+            sh "docker tag ${microserviceImage} ${ecrTagHash}"
+
+            sh "aws ecr get-login-password --region ${region} --profile ${AWS_PROFILE} | docker login --username AWS --password-stdin ${ecrUrlProd}"
+            sh "docker push ${ecrTagLatest}"
+            sh "docker push ${ecrTagHash}"
+          }
+        }
+      }
+    }
+
+    // stage('Push docker images to Artifactory') {
+    //   steps {
+    //     script {
+    //       def jenkins = readJSON(text: JENKINS_JSON)
+    //       def jcrUrl = jenkins['jcrUrl']
+    //       def commitHash = shortCommitHash()
+
+    //       def artifactoryTagLatest = "${jcrUrl}/aline/dw-${serviceName}-microservice:latest"
+    //       def artifactoryTagHashed = "${jcrUrl}/aline/dw-${serviceName}-microservice:${commitHash}"
+
+    //       sh "docker tag ${microserviceImage} ${artifactoryTagLatest}"
+    //       sh "docker tag ${microserviceImage} ${artifactoryTagHashed}"
+
+    //       rtDockerPush(
+    //         serverId: 'DW-JCR',
+    //         image: "${artifactoryTagLatest}",
+    //         targetRepo: 'aline',
+    //       )
+
+    //       rtDockerPush(
+    //         serverId: 'DW-JCR',
+    //         image: "${artifactoryTagHashed}",
+    //         targetRepo: 'aline',
+    //       )
+    //     }
+    //   }
+    // }
+
+    // stage('Push Java Artifacts to Artifactory') {
+    //   steps {
+    //     rtUpload (
+    //       serverId: 'DW-Artifactory',
+    //       spec: /{
+    //           "files": [
+    //             {
+    //               "pattern": "*-microservice\/target\/*.jar",
+    //               "target": "Aline\/${serviceName}-microservice.jar"
+    //             }
+    //         ]
+    //       }/,
+    //     )
+    //   }
+    // }
+
+    stage('Deploy EKS Cluster') {
+      steps {
+        script {
+          def clusterName = readJSON(text: TF_JSON)['eks_cluster_name']
+
+          if (clusterExists(clusterName) == false) {
+            lock('dw-eks-lock') {
+              if (clusterExists(clusterName) == false) {
+                echo 'CLUSTER DOES NOT EXIST'
+                createCluster()
+                return
+              }
+            }
+          }
+
+          echo 'CLUSTER EXISTS'
+          updateService(serviceName)
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'mvn clean'
+      sh 'docker system prune -f'
+    }
+  }
+}
+
+def clusterExists(clusterName) {
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    throwIfNull(clusterName, 'clusterName')
+
+    try {
+      def region = readJSON(text: TF_JSON)['region']
+
+      def cmd = $/
+      aws eks list-clusters --region ${region} --profile ${AWS_PROFILE} --output table \
+      | grep -oE '\${clusterName}\b'/$
+
+      def clusterMatch = bash(cmd)
+
+      return clusterMatch != null && clusterMatch?.isAllWhitespace() == false
+    }
+    catch (Exception ex) {
+      echo 'Error looking for cluster. Returning false'
+      return false
+    }
+  }
+}
+
+def updateService(serviceName) {
+  throwIfNull(serviceName, 'serviceName')
+
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    def devopsDir = 'devops'
+    def region = readJSON(text: TF_JSON)['region']
+
+    checkoutDevops(devopsDir)
+
+    dir("${devopsDir}/kubernetes/eks") {
+      updateKubeconfigFile()
+
+      sh("aws s3api get-object --region ${region} --profile ${AWS_PROFILE} --bucket dw-infra-bucket --key env/.microservice.env .env")
+      sh "make upgrade_${serviceName} || make install_${serviceName}"
+    }
+
+    sh "rm -rf ${devopsDir}"
+  }
+}
+
+def createCluster() {
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    def devopsDir = 'devops'
+    def bucketName = 'dw-infra-bucket'
+    def region = readJSON(text: TF_JSON)['region']
+
+    checkoutDevops(devopsDir)
+
+    dir("${devopsDir}/eksctl") {
+      sh "aws s3api get-object --profile ${AWS_PROFILE}  --region ${region} --bucket ${bucketName} --key env/.eksctl.env .env"
+      sh 'make init'
+    }
+
+    dir("${devopsDir}/kubernetes/eks") {
+      updateKubeconfigFile()
+
+      sh("aws s3api --profile ${AWS_PROFILE} get-object --region ${region} --bucket ${bucketName} --key env/.microservice.env .env")
+      sh 'make init'
+    }
+
+    sh "rm -rf ${devopsDir}"
+  }
+}
+
+def checkoutDevops(targetDir) {
+  def jenkinsConfig = readJSON(text: JENKINS_JSON)
+  def repoUrl = jenkinsConfig['devopsGitUrl']
+  def branch = jenkinsConfig['devopsBranch']
+
+  sh "rm -rf ${targetDir}; git clone -b ${branch} ${repoUrl} ${targetDir}"
+}
+
+def getTerraformSecret() {
+  withCredentials([[
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'DW-Jenkins-AWS-Credentials',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+  {
+    def secretText = bash('aws secretsmanager get-secret-value --profile ${AWS_PROFILE} --region us-east-1 --secret-id dw-tf-output --query SecretString --output text')
+    return secretText
+  }
+}
+
+def updateKubeconfigFile() {
+  def config = readJSON(text: TF_JSON)
+  def clusterName = config['eks_cluster_name']
+  def region = config['region']
+  def clusterContextCmd = $/
+      aws eks --region ${region} update-kubeconfig --name ${clusterName} \
+      | grep -oP '\barn.+?cluster/.+?\b'/$
+
+  try { sh 'rm ~/.kube/config' } catch (err) { }
+  bash(clusterContextCmd)
+  sh 'chmod 700 ~/.kube/config'
+}
+
+// Extracts the service name from the git url
+// It should return bank, underwriter, user or transaction
+def getServiceName(gitRepositoryUrl) {
+  def serviceName = (gitRepositoryUrl =~ /^.*aline-(.+?)-microservice.*/)[0][1]
+  checkServiceName(serviceName)
+
+  return serviceName
+}
+
+def checkServiceName(serviceName) {
+  def acceptable = readJSON(text: JENKINS_JSON)['serviceNames']
+
+  if (acceptable.contains(serviceName) == false) {
+    error "Invalid service name: '${serviceName}'"
+  }
+}
+
+def shortCommitHash() {
+  return bash("git log -1 --pretty=format:\"%h\"")
+}
+
+// Pipes act weird in jenkins so use eval to make sure it completes properly
+def bash(script) {
+  throwIfNull(script, 'script')
+
+  return sh(script: $/eval ${script}/$, returnStdout: true).trim()
+}
+
+def throwIfNull(value, name) {
+  if (value == null) {
+    error "${name} is null"
+  }
+}
