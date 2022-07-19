@@ -1,18 +1,28 @@
 include .env
-init: configure install
+init: configure add_istio install
 install: install_bank install_user install_transaction install_underwriter
 uninstall: uninstall_bank uninstall_user uninstall_transaction uninstall_underwriter
 upgrade: upgrade_bank upgrade_user upgrade_transaction upgrade_underwriter
 
 define helm
 	helm $1 $2-microservice . \
-		--set aws.ecrRepository=${ECR_REPOSITORY} \
+		--set version=v1 \
 		--values microservice-values/$2.values.yml
 endef
 
 configure:
 	-kubectl create secret generic microservice-secrets --from-env-file .env
-	kubectl apply -R -f config
+#kubectl apply -R -f config
+
+add_istio: 
+	helm repo add istio https://istio-release.storage.googleapis.com/charts
+	helm repo update
+
+	-kubectl create namespace istio-system
+
+	helm install istiod istio/istiod -n istio-system --wait
+
+	helm install istio-base istio/base -n istio-system
 
 install_bank:
 	-$(call helm,install,bank)

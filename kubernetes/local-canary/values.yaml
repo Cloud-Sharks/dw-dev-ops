@@ -1,7 +1,8 @@
 namespace: default
 
-aws:
-  ecrRepository: null
+repository: captainsalt
+
+version: v1
 
 resources:
   requests:
