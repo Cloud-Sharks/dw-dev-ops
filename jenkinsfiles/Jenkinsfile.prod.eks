@@ -258,7 +258,7 @@ def getTerraformSecret() {
     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
   {
-    def secretText = bash('aws secretsmanager get-secret-value --profile ${AWS_PROFILE} --region us-east-1 --secret-id dw-tf-output --query SecretString --output text')
+    def secretText = bash("aws secretsmanager get-secret-value --profile ${AWS_PROFILE} --region us-east-1 --secret-id dw-tf-output --query SecretString --output text")
     return secretText
   }
 }
