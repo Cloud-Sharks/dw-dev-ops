@@ -80,7 +80,7 @@ pipeline {
             sh "docker tag ${microserviceImage} ${ecrTagLatest}"
             sh "docker tag ${microserviceImage} ${ecrTagHash}"
 
-            sh "aws ecr get-login-password --region ${region} --profile ${AWS_PROFILE} | docker login --username AWS --password-stdin ${ecrUrlProd}"
+            sh "aws ecr get-login-password --region ${region} --profile dw-prod | docker login --username AWS --password-stdin ${ecrUrlProd}"
             sh "docker push ${ecrTagLatest}"
             sh "docker push ${ecrTagHash}"
           }
@@ -175,7 +175,7 @@ def clusterExists(clusterName) {
       def region = readJSON(text: TF_JSON)['region']
 
       def cmd = $/
-      aws eks list-clusters --region ${region} --profile ${AWS_PROFILE} --output table \
+      aws eks list-clusters --region ${region} --profile dw-prod --output table \
       | grep -oE '\${clusterName}\b'/$
 
       def clusterMatch = bash(cmd)
@@ -206,7 +206,7 @@ def updateService(serviceName) {
     dir("${devopsDir}/kubernetes/eks") {
       updateKubeconfigFile()
 
-      sh("aws s3api get-object --region ${region} --profile ${AWS_PROFILE} --bucket dw-infra-bucket --key env/.microservice.env .env")
+      sh("aws s3api get-object --region ${region} --profile dw-prod --bucket dw-infra-bucket --key env/.microservice.env .env")
       sh "make upgrade_${serviceName} || make install_${serviceName}"
     }
 
@@ -228,14 +228,14 @@ def createCluster() {
     checkoutDevops(devopsDir)
 
     dir("${devopsDir}/eksctl") {
-      sh "aws s3api get-object --profile ${AWS_PROFILE}  --region ${region} --bucket ${bucketName} --key env/.eksctl.env .env"
+      sh "aws s3api get-object --profile dw-prod  --region ${region} --bucket ${bucketName} --key env/.eksctl.env .env"
       sh 'make init'
     }
 
     dir("${devopsDir}/kubernetes/eks") {
       updateKubeconfigFile()
 
-      sh("aws s3api --profile ${AWS_PROFILE} get-object --region ${region} --bucket ${bucketName} --key env/.microservice.env .env")
+      sh("aws s3api --profile dw-prod get-object --region ${region} --bucket ${bucketName} --key env/.microservice.env .env")
       sh 'make init'
     }
 
@@ -258,7 +258,7 @@ def getTerraformSecret() {
     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
   {
-    def secretText = bash("aws secretsmanager get-secret-value --profile ${AWS_PROFILE} --region us-east-1 --secret-id dw-tf-output --query SecretString --output text")
+    def secretText = bash('aws secretsmanager get-secret-value --profile dw-prod --region us-east-1 --secret-id dw-tf-output --query SecretString --output text')
     return secretText
   }
 }
