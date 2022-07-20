@@ -13,7 +13,7 @@ pipeline {
     TF_JSON = ''
     JENKINS_JSON = ''
     AWS_DEFAULT_REGION = ''
-    AWS_PROFILE = '${AWS_PROFILE}'
+    AWS_PROFILE = 'dw-prod'
   }
 
   stages {
