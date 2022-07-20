@@ -206,7 +206,7 @@ def updateService(serviceName) {
     dir("${devopsDir}/kubernetes/eks") {
       updateKubeconfigFile()
 
-      sh("aws s3api get-object --region ${region} --profile dw-prod --bucket dw-infra-bucket --key env/.microservice.env .env")
+      sh("aws s3api get-object --region ${region} --profile dw-jenkins --bucket dw-infra-bucket --key env/.microservice.env .env")
       sh "make upgrade_${serviceName} || make install_${serviceName}"
     }
 
