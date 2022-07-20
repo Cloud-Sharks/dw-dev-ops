@@ -268,7 +268,7 @@ def updateKubeconfigFile() {
   def clusterName = config['eks_cluster_name']
   def region = config['region']
   def clusterContextCmd = $/
-      aws eks --region ${region} update-kubeconfig --name ${clusterName} \
+      aws eks --region ${region} update-kubeconfig --name ${clusterName} --profile dw-prod \
       | grep -oP '\barn.+?cluster/.+?\b'/$
 
   try { sh 'rm ~/.kube/config' } catch (err) { }
