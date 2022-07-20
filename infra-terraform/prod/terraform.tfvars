@@ -18,3 +18,5 @@ azs = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
 key_name = "dw-us-east-1"
 
+ecr_repositories = ["dw-bank-microservice", "dw-user-microservice", "dw-transaction-microservice", "dw-underwriter-microservice"]
+

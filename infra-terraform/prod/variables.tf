@@ -56,3 +56,11 @@ variable "key_name" {
   description = "Name of the keypair to use with the created instance"
 }
 
+################################################################################
+# ECR 
+################################################################################
+
+variable "ecr_repositories" {
+  type        = set(string)
+  description = "Name of ECR repositories"
+}

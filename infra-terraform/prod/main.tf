@@ -51,3 +51,8 @@ module "secrets" {
     eks_cluster_name   = var.eks_cluster_name
   })
 }
+
+module "ecr" {
+  source       = "../_modules/ecr"
+  repositories = var.ecr_repositories
+}
