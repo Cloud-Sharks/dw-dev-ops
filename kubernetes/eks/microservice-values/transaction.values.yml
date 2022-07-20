@@ -1,7 +1,7 @@
 serviceName: transaction
 
 image:
-  tag: stable
+  tag: latest
 
 ports:
   exposedPort: 8073
@@ -10,4 +10,4 @@ ports:
 strategy:
   type: RollingUpdate
 
-replicas: 2
+replicas: 1

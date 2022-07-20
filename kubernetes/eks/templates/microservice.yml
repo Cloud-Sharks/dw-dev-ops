@@ -18,7 +18,6 @@ spec:
       labels:
         app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
     spec:
-      serviceAccount: microservice
       containers:
         - name: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
           image: {{ required ".Values.aws.ecrRepository" .Values.aws.ecrRepository }}/dw-{{ required ".Values.serviceName" .Values.serviceName }}-microservice:{{ required ".Values.image.tag" .Values.image.tag }}
@@ -31,17 +30,6 @@ spec:
           envFrom:
             - secretRef:
                 name: microservice-secrets
-          volumeMounts:
-            - name: secrets-volume
-              mountPath: "/mnt/secrets-store"
-              readOnly: true
-      volumes:
-        - name: secrets-volume
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: aws-secrets
 ---
 apiVersion: v1
 kind: Service
