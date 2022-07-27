@@ -1,7 +1,7 @@
 serviceName: transaction
 
 image:
-  tag: stable
+  tag: latest
 
 ports:
   exposedPort: 8073

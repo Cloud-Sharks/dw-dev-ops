@@ -1,7 +1,7 @@
 serviceName: underwriter
 
 image:
-  tag: stable
+  tag: latest
 
 ports:
   exposedPort: 8071

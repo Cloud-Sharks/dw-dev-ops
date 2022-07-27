@@ -1,7 +1,7 @@
 serviceName: bank
 
 image:
-  tag: stable
+  tag: latest
 
 ports:
   exposedPort: 8083
