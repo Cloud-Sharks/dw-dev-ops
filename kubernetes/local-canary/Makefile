@@ -1,5 +1,4 @@
-include .env
-init: configure add_istio install
+init: configure install
 install: install_bank install_user install_transaction install_underwriter
 uninstall: uninstall_bank uninstall_user uninstall_transaction uninstall_underwriter
 upgrade: upgrade_bank upgrade_user upgrade_transaction upgrade_underwriter
@@ -12,17 +11,19 @@ endef
 
 configure:
 	-kubectl create secret generic microservice-secrets --from-env-file .env
-#kubectl apply -R -f config
 
-add_istio: 
 	helm repo add istio https://istio-release.storage.googleapis.com/charts
 	helm repo update
 
 	-kubectl create namespace istio-system
-
+	helm install istio-base istio/base -n istio-system
 	helm install istiod istio/istiod -n istio-system --wait
 
-	helm install istio-base istio/base -n istio-system
+	-kubectl create namespace istio-ingress
+	kubectl label namespace istio-ingress istio-injection=enabled
+	helm install istio-ingress istio/gateway -n istio-ingress --wait
+
+	kubectl apply -R -f config
 
 install_bank:
 	-$(call helm,install,bank)
