@@ -43,10 +43,7 @@ metadata:
   labels:
     {{- include "microservice.labels" . | indent 4 }}
 spec:
-  type: LoadBalancer
   selector:
     {{- include "microservice.labels" . | indent 4 }}
   ports:
-    - protocol: TCP
-      port: {{ required ".Values.ports.exposedPort" .Values.ports.exposedPort }}
-      targetPort: {{ required ".Values.ports.exposedPort" .Values.ports.exposedPort }}
+    - port: {{ required ".Values.ports.exposedPort" .Values.ports.exposedPort }}

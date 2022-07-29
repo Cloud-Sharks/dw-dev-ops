@@ -4,8 +4,8 @@ uninstall: uninstall_bank uninstall_user uninstall_transaction uninstall_underwr
 upgrade: upgrade_bank upgrade_user upgrade_transaction upgrade_underwriter
 
 define helm
-	helm $1 $2-microservice . \
-		--set version=v1 \
+	helm $1 $2-microservice-$3 . \
+		--set version=$3 \
 		--values microservice-values/$2.values.yml
 endef
 
@@ -16,11 +16,13 @@ configure:
 	helm repo update
 
 	-helm install nginx-ingress nginx-stable/nginx-ingress
-	
 	kubectl apply -R -f config
 
-install_bank:
-	-$(call helm,install,bank)
+install_bank_v1:
+	-$(call helm,install,bank,v1)
+
+install_bank_v2:
+	-$(call helm,install,bank,v2)
 
 install_user:
 	-$(call helm,install,user)
@@ -43,8 +45,8 @@ uninstall_transaction:
 uninstall_underwriter:
 	-helm uninstall underwriter-microservice
 
-upgrade_bank:
-	-$(call helm,upgrade,bank)
+upgrade_bank_v1:
+	-$(call helm,upgrade,bank,v1)
 
 upgrade_user:
 	-$(call helm,upgrade,user)
