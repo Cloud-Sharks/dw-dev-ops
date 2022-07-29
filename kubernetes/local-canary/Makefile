@@ -12,17 +12,11 @@ endef
 configure:
 	-kubectl create secret generic microservice-secrets --from-env-file .env
 
-	helm repo add istio https://istio-release.storage.googleapis.com/charts
+	helm repo add nginx-stable https://helm.nginx.com/stable
 	helm repo update
 
-	-kubectl create namespace istio-system
-	helm install istio-base istio/base -n istio-system
-	helm install istiod istio/istiod -n istio-system --wait
-
-	-kubectl create namespace istio-ingress
-	kubectl label namespace istio-ingress istio-injection=enabled
-	helm install istio-ingress istio/gateway -n istio-ingress --wait
-
+	-helm install nginx-ingress nginx-stable/nginx-ingress
+	
 	kubectl apply -R -f config
 
 install_bank:
