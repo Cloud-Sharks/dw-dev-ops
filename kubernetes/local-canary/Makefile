@@ -1,7 +1,13 @@
 init: configure install
-install: install_bank install_user install_transaction install_underwriter
-uninstall: uninstall_bank uninstall_user uninstall_transaction uninstall_underwriter
-upgrade: upgrade_bank upgrade_user upgrade_transaction upgrade_underwriter
+
+install_v1: install_bank_v1 install_user_v1 install_transaction_v1 install_underwriter_v1
+install_v2: install_bank_v2 install_user_v2 install_transaction_v2 install_underwriter_v2
+
+uninstall_v1: uninstall_bank_v1 uninstall_user_v1 uninstall_transaction_v1 uninstall_underwriter_v1
+uninstall_v2: uninstall_bank_v2 uninstall_user_v2 uninstall_transaction_v2 uninstall_underwriter_v2
+
+uninstall_all: uninstall_bank_v1 uninstall_bank_v2 uninstall_user_v1 uninstall_user_v2 uninstall_transaction_v1 uninstall_transaction_v2 uninstall_underwriter_v1 uninstall_underwriter_v2
+install_all: install_bank_v1 install_bank_v2 install_user_v1 install_user_v2 install_transaction_v1 install_transaction_v2 install_underwriter_v1 install_underwriter_v2
 
 define helm
 	helm $1 $2-microservice-$3 . \
@@ -24,35 +30,44 @@ install_bank_v1:
 install_bank_v2:
 	-$(call helm,install,bank,v2)
 
-install_user:
-	-$(call helm,install,user)
+install_user_v1:
+	-$(call helm,install,user,v1)
 
-install_transaction:
-	-$(call helm,install,transaction)
+install_user_v2:
+	-$(call helm,install,user,v2)
 
-install_underwriter:
-	-$(call helm,install,underwriter)
+install_transaction_v1:
+	-$(call helm,install,transaction,v1)
 
-uninstall_bank:
-	-helm uninstall bank-microservice
+install_transaction_v2:
+	-$(call helm,install,transaction,v2)
 
-uninstall_user:
-	-helm uninstall user-microservice
+install_underwriter_v1:
+	-$(call helm,install,underwriter,v1)
 
-uninstall_transaction:
-	-helm uninstall transaction-microservice
+install_underwriter_v2:
+	-$(call helm,install,underwriter,v2)
 
-uninstall_underwriter:
-	-helm uninstall underwriter-microservice
+uninstall_bank_v1:
+	-helm uninstall bank-microservice-v1
 
-upgrade_bank_v1:
-	-$(call helm,upgrade,bank,v1)
+uninstall_bank_v2:
+	-helm uninstall bank-microservice-v2
 
-upgrade_user:
-	-$(call helm,upgrade,user)
+uninstall_user_v1:
+	-helm uninstall user-microservice-v1
 
-upgrade_transaction:
-	-$(call helm,upgrade,transaction)
+uninstall_user_v2:
+	-helm uninstall user-microservice-v2
 
-upgrade_underwriter:
-	-$(call helm,upgrade,underwriter)
+uninstall_transaction_v1:
+	-helm uninstall transaction-microservice-v1
+
+uninstall_transaction_v2:
+	-helm uninstall transaction-microservice-v2
+
+uninstall_underwriter_v1:
+	-helm uninstall underwriter-microservice-v1
+
+uninstall_underwriter_v2:
+	-helm uninstall underwriter-microservice-v2
