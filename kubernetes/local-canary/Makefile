@@ -14,6 +14,7 @@ install_all: install_bank_v1 install_bank_v2 install_user_v1 install_user_v2 ins
 
 define helm
 	helm $1 $2-microservice-$3 . \
+		--namespace default \
 		--set version=$3 \
 		--set namespace=$3 \
 		--values microservice-values/$2.values.yml
