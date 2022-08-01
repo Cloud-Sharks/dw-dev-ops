@@ -20,6 +20,10 @@ define helm
 		--values microservice-values/$2.values.yml
 endef
 
+delete_secrets:
+	-kubectl delete secret microservice-secrets -n v1
+	-kubectl delete secret microservice-secrets -n v2
+
 configure:
 	-kubectl create ns v1
 	-kubectl create ns v2
@@ -82,25 +86,25 @@ upgrade_underwriter_v2:
 	-$(call helm,upgrade,underwriter,v2)
 
 uninstall_bank_v1:
-	-helm uninstall bank-microservice-v1
+	-helm uninstall bank-microservice-v1 --namespace default
 
 uninstall_bank_v2:
-	-helm uninstall bank-microservice-v2
+	-helm uninstall bank-microservice-v2 --namespace default
 
 uninstall_user_v1:
-	-helm uninstall user-microservice-v1
+	-helm uninstall user-microservice-v1 --namespace default
 
 uninstall_user_v2:
-	-helm uninstall user-microservice-v2
+	-helm uninstall user-microservice-v2 --namespace default
 
 uninstall_transaction_v1:
-	-helm uninstall transaction-microservice-v1
+	-helm uninstall transaction-microservice-v1 --namespace default
 
 uninstall_transaction_v2:
-	-helm uninstall transaction-microservice-v2
+	-helm uninstall transaction-microservice-v2 --namespace default
 
 uninstall_underwriter_v1:
-	-helm uninstall underwriter-microservice-v1
+	-helm uninstall underwriter-microservice-v1 --namespace default
 
 uninstall_underwriter_v2:
-	-helm uninstall underwriter-microservice-v2
+	-helm uninstall underwriter-microservice-v2 --namespace default
