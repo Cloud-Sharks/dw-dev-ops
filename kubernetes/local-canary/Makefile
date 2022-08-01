@@ -6,6 +6,9 @@ install_v2: install_bank_v2 install_user_v2 install_transaction_v2 install_under
 uninstall_v1: uninstall_bank_v1 uninstall_user_v1 uninstall_transaction_v1 uninstall_underwriter_v1
 uninstall_v2: uninstall_bank_v2 uninstall_user_v2 uninstall_transaction_v2 uninstall_underwriter_v2
 
+upgrade_v1: upgrade_bank_v1 upgrade_user_v1 upgrade_transaction_v1 upgrade_underwriter_v1
+upgrade_v2: upgrade_bank_v2 upgrade_user_v2 upgrade_transaction_v2 upgrade_underwriter_v2
+
 uninstall_all: uninstall_bank_v1 uninstall_bank_v2 uninstall_user_v1 uninstall_user_v2 uninstall_transaction_v1 uninstall_transaction_v2 uninstall_underwriter_v1 uninstall_underwriter_v2
 install_all: install_bank_v1 install_bank_v2 install_user_v1 install_user_v2 install_transaction_v1 install_transaction_v2 install_underwriter_v1 install_underwriter_v2
 
@@ -23,10 +26,10 @@ configure:
 	-kubectl create secret generic microservice-secrets --from-env-file .env -n v1
 	-kubectl create secret generic microservice-secrets --from-env-file .env -n v2
 
-	helm repo add nginx-stable https://helm.nginx.com/stable
+	helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 	helm repo update
 
-	-helm install nginx-ingress nginx-stable/nginx-ingress
+	-helm install nginx-ingress ingress-nginx/ingress-nginx --version 4.2.0
 	kubectl apply -R -f config
 
 install_bank_v1:
@@ -52,6 +55,30 @@ install_underwriter_v1:
 
 install_underwriter_v2:
 	-$(call helm,install,underwriter,v2)
+
+upgrade_bank_v1:
+	-$(call helm,upgrade,bank,v1)
+
+upgrade_bank_v2:
+	-$(call helm,upgrade,bank,v2)
+
+upgrade_user_v1:
+	-$(call helm,upgrade,user,v1)
+
+upgrade_user_v2:
+	-$(call helm,upgrade,user,v2)
+
+upgrade_transaction_v1:
+	-$(call helm,upgrade,transaction,v1)
+
+upgrade_transaction_v2:
+	-$(call helm,upgrade,transaction,v2)
+
+upgrade_underwriter_v1:
+	-$(call helm,upgrade,underwriter,v1)
+
+upgrade_underwriter_v2:
+	-$(call helm,upgrade,underwriter,v2)
 
 uninstall_bank_v1:
 	-helm uninstall bank-microservice-v1
