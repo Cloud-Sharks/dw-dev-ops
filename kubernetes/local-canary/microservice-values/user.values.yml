@@ -7,6 +7,6 @@ ports:
   exposedPort: 8070
 
 strategy:
-  type: RollingUpdate
+  type: Recreate
 
 replicas: 1
