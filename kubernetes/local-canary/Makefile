@@ -12,11 +12,16 @@ install_all: install_bank_v1 install_bank_v2 install_user_v1 install_user_v2 ins
 define helm
 	helm $1 $2-microservice-$3 . \
 		--set version=$3 \
+		--set namespace=$3 \
 		--values microservice-values/$2.values.yml
 endef
 
 configure:
-	-kubectl create secret generic microservice-secrets --from-env-file .env
+	-kubectl create ns v1
+	-kubectl create ns v2
+
+	-kubectl create secret generic microservice-secrets --from-env-file .env -n v1
+	-kubectl create secret generic microservice-secrets --from-env-file .env -n v2
 
 	helm repo add nginx-stable https://helm.nginx.com/stable
 	helm repo update
