@@ -48,8 +48,19 @@ variable "eks_cluster_name" {
 }
 
 ################################################################################
-# Bastion
+# EC2
 ################################################################################
+
+variable "ec2_configs" {
+  type = map(object({
+    name          = string
+    ports         = set(number)
+    instance_type = string
+    # TODO Remove
+    is_public   = bool
+    volume_size = number
+  }))
+}
 
 variable "key_name" {
   type        = string

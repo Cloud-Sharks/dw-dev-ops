@@ -18,3 +18,36 @@ azs = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
 key_name = "dw-us-east-1"
 
+ec2_configs = {
+  bastion = {
+    name          = "**DW-Bastion"
+    ports         = [22,80]
+    instance_type = "t2.nano"
+    is_public     = true
+    volume_size   = 8
+  }
+  artifactory = {
+    name          = "**DW-Artifactory"
+    ports         = [22,80,443]
+    instance_type = "t2.nano"
+    # instance_type = "t3a.large"
+    is_public     = true
+    volume_size   = 8
+  }
+  awx = {
+    name          = "**DW-AWX"
+    ports         = [22,80],
+    instance_type = "t2.nano"
+    # instance_type = "t2.medium"
+    is_public     = true
+    volume_size   = 8
+  }
+  elastic = {
+    name          = "**DW-Elastic"
+    ports         = [22,80],
+    instance_type = "t2.nano"
+    # instance_type = "t3a.large"
+    is_public     = true
+    volume_size   = 8
+  }
+}

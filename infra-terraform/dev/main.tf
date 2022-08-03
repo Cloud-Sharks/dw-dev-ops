@@ -33,11 +33,6 @@ module "vpc" {
   )
 }
 
-module "security_groups" {
-  source = "../_modules/security-groups"
-  vpc_id = module.vpc.vpc_id
-  tags   = local.global_tags
-}
 
 module "secrets" {
   source      = "../_modules/secrets"
@@ -52,11 +47,10 @@ module "secrets" {
   })
 }
 
-module "bastion" {
-  source             = "../_modules/bastion"
-  private_subnet_id  = element(module.vpc.private_subnet_ids, 0)
-  public_subnet_id   = element(module.vpc.public_subnet_ids, 0)
-  security_group_ids = module.security_groups.security_group_ids
-  key_name           = var.key_name
-  tags               = local.global_tags
+module "ec2" {
+  source           = "../_modules/ec2"
+  tags             = local.global_tags
+  ec2_configs      = var.ec2_configs
+  public_subnet_id = module.vpc.public_subnet_ids[0]
+  vpc_id           = module.vpc.vpc_id
 }
