@@ -92,6 +92,11 @@ data "aws_instance" "instance_data" {
     values = ["pending", "running"]
   }
 
+  filter {
+    name   = "vpc-id"
+    values = [var.vpc_id]
+  }
+
   depends_on = [
     aws_instance.instances
   ]
