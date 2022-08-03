@@ -22,14 +22,14 @@ hosted_zone = "cloudsharks.name"
 
 ec2_configs = {
   bastion = {
-    name          = "**DW-Bastion"
+    name          = "DW Bastion"
     ports         = [22,80]
     instance_type = "t2.nano"
     volume_size   = 8
     domains = ["dw.bastion"]
   }
   artifactory = {
-    name          = "**DW-Artifactory"
+    name          = "DW Artifactory"
     ports         = [22,80,443]
     instance_type = "t2.nano"
     # instance_type = "t3a.large"
@@ -37,7 +37,7 @@ ec2_configs = {
     domains = ["dw.jcr", "dw.artifactory"]
   }
   awx = {
-    name          = "**DW-AWX"
+    name          = "DW AWX"
     ports         = [22,80],
     instance_type = "t2.nano"
     # instance_type = "t2.medium"
@@ -45,7 +45,7 @@ ec2_configs = {
     domains = ["dw.awx"]
   }
   elastic = {
-    name          = "**DW-Elastic"
+    name          = "DW Elastic"
     ports         = [22,80],
     instance_type = "t2.nano"
     # instance_type = "t3a.large"
