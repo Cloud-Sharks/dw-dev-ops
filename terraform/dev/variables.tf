@@ -64,4 +64,3 @@ variable "key_name" {
   type        = string
   description = "Name of the keypair to use with the created instance"
 }
-

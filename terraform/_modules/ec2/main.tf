@@ -56,11 +56,12 @@ data "aws_ami" "ubuntu" {
 ################################################################################
 
 resource "aws_instance" "instances" {
-  for_each        = var.ec2_configs
-  ami             = data.aws_ami.ubuntu.id
-  instance_type   = each.value.instance_type
-  subnet_id       = var.public_subnet_id
-  security_groups = [for g in aws_security_group.groups : g.id if g.tags_all.Name == each.value.name]
+  for_each               = var.ec2_configs
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = each.value.instance_type
+  subnet_id              = var.public_subnet_id
+  vpc_security_group_ids = [for g in aws_security_group.groups : g.id if g.tags_all.Name == each.value.name]
+  key_name               = var.key_name
 
   root_block_device {
     volume_size = each.value.volume_size

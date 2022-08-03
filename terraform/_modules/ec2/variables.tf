@@ -9,7 +9,7 @@ variable "ec2_configs" {
 
 variable "public_subnet_id" {
   type        = string
-  description = "Public Subnet"
+  description = "Public Subnet to host instances in"
 }
 
 variable "vpc_id" {
@@ -20,4 +20,9 @@ variable "vpc_id" {
 variable "tags" {
   type    = map(string)
   default = {}
+}
+
+variable "key_name" {
+  type        = string
+  description = "Name of the key pair to ssh into instances with"
 }
