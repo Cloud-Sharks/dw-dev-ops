@@ -33,7 +33,6 @@ module "vpc" {
   )
 }
 
-
 module "secrets" {
   source      = "../_modules/secrets"
   environment = var.environment
