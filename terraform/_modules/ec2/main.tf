@@ -65,6 +65,7 @@ resource "aws_instance" "instances" {
 
   root_block_device {
     volume_size = each.value.volume_size
+    tags        = merge({ Name = each.value.name }, var.tags)
   }
 
   tags = merge({ Name = each.value.name }, var.tags)
