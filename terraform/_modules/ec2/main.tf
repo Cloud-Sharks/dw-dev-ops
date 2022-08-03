@@ -10,11 +10,11 @@ resource "aws_security_group" "groups" {
 
   dynamic "ingress" {
     for_each = each.value.ports
-    iterator = ingress
+    iterator = ports
 
     content {
-      from_port   = ingress.value
-      to_port     = ingress.value
+      from_port   = ports.value
+      to_port     = ports.value
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
     }
