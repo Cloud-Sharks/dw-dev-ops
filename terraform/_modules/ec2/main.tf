@@ -75,10 +75,6 @@ resource "aws_instance" "instances" {
 # Route 53
 ################################################################################
 
-data "aws_route53_zone" "main" {
-  name = var.hosted_zone
-}
-
 data "aws_instance" "instance_data" {
   for_each = var.ec2_configs
 
@@ -111,6 +107,10 @@ locals {
       }
     ]
   ])
+}
+
+data "aws_route53_zone" "main" {
+  name = var.hosted_zone
 }
 
 resource "aws_route53_record" "record" {
