@@ -1,8 +1,3 @@
-provider "aws" {
-  profile = "default"
-  region  = var.region
-}
-
 locals {
   global_tags = {
     Environment = var.environment
