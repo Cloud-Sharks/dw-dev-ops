@@ -14,7 +14,7 @@ import (
 var terraformOptions *terraform.Options
 
 func init() {
-	terraformDir := "../infra-terraform/dev"
+	terraformDir := "../terraform/dev"
 
 	tfOptions := terraform.WithDefaultRetryableErrors(&testing.T{}, &terraform.Options{
 		TerraformDir: terraformDir,
