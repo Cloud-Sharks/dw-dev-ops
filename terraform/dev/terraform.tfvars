@@ -26,7 +26,7 @@ ec2_configs = {
     ports         = [22,80]
     instance_type = "t2.nano"
     volume_size   = 8
-    domains = ["dw.bastion"]
+    domains = ["bastion.dw"]
   }
   artifactory = {
     name          = "DW Artifactory"
@@ -34,7 +34,7 @@ ec2_configs = {
     instance_type = "t2.nano"
     # instance_type = "t3a.large"
     volume_size   = 8
-    domains = ["dw.jcr", "dw.artifactory"]
+    domains = ["jcr.dw", "artifactory.dw"]
   }
   awx = {
     name          = "DW AWX"
@@ -42,7 +42,7 @@ ec2_configs = {
     instance_type = "t2.nano"
     # instance_type = "t2.medium"
     volume_size   = 8
-    domains = ["dw.awx"]
+    domains = ["awx.dw"]
   }
   elastic = {
     name          = "DW Elastic"
@@ -50,6 +50,6 @@ ec2_configs = {
     instance_type = "t2.nano"
     # instance_type = "t3a.large"
     volume_size   = 8
-    domains = ["dw.elastic"]
+    domains = ["elastic.dw"]
   }
 }
