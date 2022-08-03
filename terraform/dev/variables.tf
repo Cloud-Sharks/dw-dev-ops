@@ -57,10 +57,20 @@ variable "ec2_configs" {
     ports         = set(number)
     instance_type = string
     volume_size   = number
+    domains       = set(string)
   }))
 }
 
 variable "key_name" {
   type        = string
   description = "Name of the keypair to use with the created instance"
+}
+
+################################################################################
+# Route 53
+################################################################################
+
+variable "hosted_zone" {
+  type        = string
+  description = "Value of the zone to host domains in"
 }

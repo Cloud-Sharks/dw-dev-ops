@@ -4,6 +4,7 @@ variable "ec2_configs" {
     ports         = set(number)
     instance_type = string
     volume_size   = number
+    domains       = set(string)
   }))
 }
 
@@ -20,6 +21,11 @@ variable "vpc_id" {
 variable "tags" {
   type    = map(string)
   default = {}
+}
+
+variable "hosted_zone" {
+  type        = string
+  description = "Value of the zone to host domains in"
 }
 
 variable "key_name" {
