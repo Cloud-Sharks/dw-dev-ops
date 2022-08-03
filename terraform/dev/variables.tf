@@ -56,9 +56,7 @@ variable "ec2_configs" {
     name          = string
     ports         = set(number)
     instance_type = string
-    # TODO Remove
-    is_public   = bool
-    volume_size = number
+    volume_size   = number
   }))
 }
 

@@ -23,7 +23,6 @@ ec2_configs = {
     name          = "**DW-Bastion"
     ports         = [22,80]
     instance_type = "t2.nano"
-    is_public     = true
     volume_size   = 8
   }
   artifactory = {
@@ -31,7 +30,6 @@ ec2_configs = {
     ports         = [22,80,443]
     instance_type = "t2.nano"
     # instance_type = "t3a.large"
-    is_public     = true
     volume_size   = 8
   }
   awx = {
@@ -39,7 +37,6 @@ ec2_configs = {
     ports         = [22,80],
     instance_type = "t2.nano"
     # instance_type = "t2.medium"
-    is_public     = true
     volume_size   = 8
   }
   elastic = {
@@ -47,7 +44,6 @@ ec2_configs = {
     ports         = [22,80],
     instance_type = "t2.nano"
     # instance_type = "t3a.large"
-    is_public     = true
     volume_size   = 8
   }
 }
