@@ -44,7 +44,7 @@ ec2_configs = {
   }
   elastic = {
     name          = "DW Elastic"
-    ports         = [22,5601],
+    ports         = [22,5044,5601],
     instance_type = "t3a.large"
     volume_size   = 20
     domains = ["elastic.dw"]
