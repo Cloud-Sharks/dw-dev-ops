@@ -1,27 +1,29 @@
+{{- define "microservice.labels" }}
+app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+{{- end }}
+
 apiVersion: apps/v1
 kind: Deployment
-
 metadata:
-  name: {{ required ".Values.serviceName" .Values.serviceName }}-deployment
+  name: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
   namespace: {{ required ".Values.namespace" .Values.namespace }}
   labels:
-    app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+    {{- include "microservice.labels" . | indent 4 }}
 spec:
   replicas: {{ required ".Values.replicas" .Values.replicas }}
   strategy:
     type: {{ .Values.strategy.type }}
   selector:
     matchLabels:
-      app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+      {{- include "microservice.labels" . | indent 6 }}
   template:
     metadata:
       labels:
-        app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+        {{- include "microservice.labels" . | indent 8 }}
     spec:
-      serviceAccount: microservice
       containers:
         - name: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
-          image: {{ required ".Values.aws.ecrRepository" .Values.aws.ecrRepository }}/dw-{{ required ".Values.serviceName" .Values.serviceName }}-microservice:{{ required ".Values.image.tag" .Values.image.tag }}
+          image: {{ required ".Values.repository" .Values.repository }}/dw-{{ required ".Values.serviceName" .Values.serviceName }}-microservice:{{ required ".Values.image.tag" .Values.image.tag }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
           ports:
             - containerPort: {{ required ".Values.ports.exposedPort" .Values.ports.exposedPort }}
@@ -31,17 +33,6 @@ spec:
           envFrom:
             - secretRef:
                 name: microservice-secrets
-          volumeMounts:
-            - name: secrets-volume
-              mountPath: "/mnt/secrets-store"
-              readOnly: true
-      volumes:
-        - name: secrets-volume
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: aws-secrets
 ---
 apiVersion: v1
 kind: Service
@@ -49,13 +40,11 @@ metadata:
   name: {{ required ".Values.serviceName" .Values.serviceName }}-service
   namespace: {{ required ".Values.namespace" .Values.namespace }}
   labels:
-    app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+    {{- include "microservice.labels" . | indent 4 }}
 spec:
-  type: NodePort
   selector:
-    app: {{ required ".Values.serviceName" .Values.serviceName }}-microservice
+    {{- include "microservice.labels" . | indent 4 }}
   ports:
     - protocol: TCP
       port: {{ required ".Values.ports.exposedPort" .Values.ports.exposedPort }}
       targetPort: {{ required ".Values.ports.exposedPort" .Values.ports.exposedPort }}
-      nodePort: {{ required ".Values.ports.nodePort" .Values.ports.nodePort }}
