@@ -100,10 +100,10 @@ data "aws_instance" "instance_data" {
 
 locals {
   domain_ip_pairs = flatten([
-    for config_key, config in var.ec2_configs : [
+    for ec2_key, config in var.ec2_configs : [
       for domain in config.domains : {
         domain_name = domain
-        ip_address  = data.aws_instance.instance_data[config_key].public_ip
+        ip_address  = data.aws_instance.instance_data[ec2_key].public_ip
       }
     ]
   ])
