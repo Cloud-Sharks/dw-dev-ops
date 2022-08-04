@@ -18,7 +18,7 @@ spec:
               service:
                 name: bank-service
                 port:
-                  number: 8083
+                  number: 80
 
           - path: /branches
             pathType: Prefix
@@ -26,7 +26,7 @@ spec:
               service:
                 name: bank-service
                 port:
-                  number: 8083
+                  number: 80
 
           - path: /login
             pathType: Prefix
@@ -34,7 +34,7 @@ spec:
               service:
                 name: user-service
                 port:
-                  number: 8070
+                  number: 80
 
           - path: /users
             pathType: Prefix
@@ -42,7 +42,7 @@ spec:
               service:
                 name: user-service
                 port:
-                  number: 8070
+                  number: 80
 
           - path: /applicants
             pathType: Prefix
@@ -50,7 +50,7 @@ spec:
               service:
                 name: underwriter-service
                 port:
-                  number: 8071
+                  number: 80
 
           - path: /applications
             pathType: Prefix
@@ -58,7 +58,7 @@ spec:
               service:
                 name: underwriter-service
                 port:
-                  number: 8071
+                  number: 80
 
           - path: /transactions
             pathType: Prefix
@@ -66,4 +66,4 @@ spec:
               service:
                 name: transaction-service
                 port:
-                  number: 8073
+                  number: 80

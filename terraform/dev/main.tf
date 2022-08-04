@@ -1,8 +1,3 @@
-provider "aws" {
-  profile = "default"
-  region  = var.region
-}
-
 locals {
   global_tags = {
     Environment = var.environment
@@ -33,12 +28,6 @@ module "vpc" {
   )
 }
 
-module "security_groups" {
-  source = "../_modules/security-groups"
-  vpc_id = module.vpc.vpc_id
-  tags   = local.global_tags
-}
-
 module "secrets" {
   source      = "../_modules/secrets"
   environment = var.environment
@@ -52,11 +41,22 @@ module "secrets" {
   })
 }
 
-module "bastion" {
-  source             = "../_modules/bastion"
-  private_subnet_id  = element(module.vpc.private_subnet_ids, 0)
-  public_subnet_id   = element(module.vpc.public_subnet_ids, 0)
-  security_group_ids = module.security_groups.security_group_ids
-  key_name           = var.key_name
-  tags               = local.global_tags
+module "ec2" {
+  source           = "../_modules/ec2"
+  tags             = local.global_tags
+  ec2_configs      = var.ec2_configs
+  public_subnet_id = module.vpc.public_subnet_ids[0]
+  vpc_id           = module.vpc.vpc_id
+  key_name         = var.key_name
+}
+
+module "route53" {
+  source      = "../_modules/route53"
+  vpc_id      = module.vpc.vpc_id
+  ec2_configs = var.ec2_configs
+  hosted_zone = var.hosted_zone
+
+  depends_on = [
+    module.ec2
+  ]
 }

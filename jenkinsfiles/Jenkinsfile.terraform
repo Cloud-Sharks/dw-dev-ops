@@ -11,13 +11,13 @@ pipeline {
   stages {
     stage('Init') {
       steps {
-        sh 'terraform -chdir=infra-terraform/dev init'
+        sh 'terraform -chdir=terraform/dev init'
       }
     }
 
     stage('Lint') {
       steps {
-        dir('infra-terraform/dev') {
+        dir('terraform/dev') {
           sh 'tflint'
         }
       }
@@ -26,7 +26,7 @@ pipeline {
     stage('Plan') {
       steps {
         script {
-          def planCmd = 'terraform -chdir=infra-terraform/dev plan -out planfile -detailed-exitcode'
+          def planCmd = 'terraform -chdir=terraform/dev plan -out planfile -detailed-exitcode'
           def statusCode = sh(script: planCmd, returnStatus: true)
 
           if (statusCode == 2) {
@@ -44,7 +44,7 @@ pipeline {
       }
 
       steps {
-        sh 'terraform -chdir=infra-terraform/dev apply planfile'
+        sh 'terraform -chdir=terraform/dev apply planfile'
       }
     }
 
@@ -58,7 +58,7 @@ pipeline {
       }
 
       steps {
-        sh 'terraform -chdir=infra-terraform/dev apply planfile'
+        sh 'terraform -chdir=terraform/dev apply planfile'
       }
     }
   }

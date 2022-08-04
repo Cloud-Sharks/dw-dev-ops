@@ -1,6 +1,6 @@
 include .env
-init: create_iam_policies create_cluster create_node_group install_services install_externaldns install_fluentbit
-install_services: add_helm_repos create_service_accounts install_load_balancer install_ascp
+init: create_iam_policies create_cluster create_node_group install_services install_cloudwatch install_externaldns install_fluentbit
+install_services: add_helm_repos create_service_accounts install_load_balancer
 
 SHELL := /bin/bash
 
@@ -59,10 +59,6 @@ create_iam_policies:
 		--policy-document file://${albPolicyDocument}
 
 	-aws iam create-policy \
-		--policy-name ${containerSecretPolicyName} \
-		--policy-document file://${containerSecretPolicyDocument}
-
-	-aws iam create-policy \
 		--policy-name ${fluentBitPolicyName} \
 		--policy-document file://${fluentBitPolicyDocument}
 
@@ -83,16 +79,6 @@ create_service_accounts:
 		--namespace=kube-system \
 		--name=${albServiceAccountName} \
 		--attach-policy-arn=arn:aws:iam::${accountId}:policy/${albPolicyName} \
-		--override-existing-serviceaccounts \
-		--approve
-
-# Container Secret Service Account
-	eksctl create iamserviceaccount \
-		--cluster=${clusterName} \
-		--region=${region} \
-		--namespace=${containerSecretNamespace} \
-		--name=${containerSecretServiceAccountName} \
-		--attach-policy-arn=arn:aws:iam::${accountId}:policy/${containerSecretPolicyName} \
 		--override-existing-serviceaccounts \
 		--approve
 
@@ -127,9 +113,6 @@ install_load_balancer:
 		--set serviceAccount.create=false \
 		--set serviceAccount.name=${albServiceAccountName}
 
-install_ascp:
-	helm install -n kube-system csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver --set syncSecret.enabled=true
-
 install_externaldns:
 	kubectl apply -f yaml/external-dns.yml
 
@@ -155,6 +138,9 @@ install_fluentbit:
 		--from-literal=logs.region=$$RegionName
 
 	kubectl apply -f yaml/fluentbit.yml
+
+install_cloudwatch:
+	kubectl apply -f yaml/aws-logging-cloudwatch-configmap.yml
 
 update_env:
 	aws s3 cp .env s3://dw-infra-bucket/env/.eksctl.env

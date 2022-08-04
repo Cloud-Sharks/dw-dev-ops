@@ -1,7 +1,6 @@
 namespace: default
 
-aws:
-  ecrRepository: null
+repository: null
 
 resources:
   requests:
