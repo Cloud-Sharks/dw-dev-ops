@@ -4,7 +4,7 @@ image:
   tag: stable
 
 ports:
-  exposedPort: 8073
+  appPort: 80
   nodePort: 30002
 
 strategy:

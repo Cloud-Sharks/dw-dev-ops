@@ -1,5 +1,1 @@
 ansible_ssh_private_key_file: files/dw-us-east-1.pem
-aws_key: "{{vault_aws_key}}"
-aws_secret: "{{vault_aws_secret}}"
-aws_region: "{{vault_aws_region}}"
-account_id: "{{vault_account_id}}"

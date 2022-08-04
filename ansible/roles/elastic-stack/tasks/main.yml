@@ -114,7 +114,7 @@
       functionbeat.provider.aws.endpoint: "s3.amazonaws.com"
       functionbeat.provider.aws.deploy_bucket: "dw-function-beat"
       functionbeat.provider.aws.functions:
-        - name: cloudwatch
+        - name: dwfb
           enabled: true
           type: cloudwatch_logs
           triggers:
@@ -131,9 +131,9 @@
 - name: Deploy Functionbeat
   shell:
     cmd: |-
-      ./functionbeat remove cloudwatch > /dev/null
+      ./functionbeat remove dwfb > /dev/null
       ./functionbeat setup
-      ./functionbeat deploy cloudwatch
+      ./functionbeat deploy dwfb
     chdir: /root/functionbeat-8.2.0-linux-x86_64
 
 - name: Register Kibana enrollment token

@@ -1,6 +1,5 @@
 // Leave blank
-def taggedImageLatest = ''
-def taggedImageCommitHash = ''
+def microserviceImage = ''
 def serviceName = ''
 
 pipeline {
@@ -17,7 +16,7 @@ pipeline {
   }
 
   stages {
-    stage('Setup') {
+    stage('Setup environment variables') {
       steps {
         script {
           configFileProvider([configFile(fileId: 'dw-jenkins-config', variable: 'JENKINS_CONFIG')]) {
@@ -28,14 +27,19 @@ pipeline {
           AWS_DEFAULT_REGION = readJSON(text: TF_JSON)['region']
 
           serviceName = getServiceName(GIT_URL)
-
-          sh 'git submodule init'
-          sh 'git submodule update'
+          microserviceImage = "${serviceName}:${shortCommitHash()}"
         }
       }
     }
 
-    stage('Test') {
+    stage('Update repository submodules') {
+      steps {
+        sh 'git submodule init'
+        sh 'git submodule update'
+      }
+    }
+
+    stage('Run unit tests') {
       steps {
         sh 'mvn clean install test'
       }
@@ -64,25 +68,14 @@ pipeline {
     }
 
     stage('Build Docker Image') {
-      environment {
-        COMMIT_HASH = "`git log -1 --pretty=format:\"%h\"`"
-      }
-
       steps {
         script {
-          def ecrRepository = "dw-${serviceName}-microservice"
-          def ecrUrl = readJSON(text: JENKINS_JSON)['ecrRepositoryUrl']
-
-          taggedImageLatest = "${ecrUrl}/${ecrRepository}"
-          taggedImageCommitHash = "${ecrUrl}/${ecrRepository}:${COMMIT_HASH}"
-
-          sh "docker build -t ${taggedImageLatest} ."
-          sh "docker tag ${taggedImageLatest} ${taggedImageCommitHash}"
+          sh "docker build -t ${microserviceImage} ."
         }
       }
     }
 
-    stage('Push Image') {
+    stage('Push docker images to ECR') {
       steps {
         withCredentials([[
           $class: 'AmazonWebServicesCredentialsBinding',
@@ -91,14 +84,66 @@ pipeline {
           secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
         {
           script {
-            def jenkins = readJSON(text: JENKINS_JSON)
-            def tf = readJSON(text: TF_JSON)
+            def ecrUrl = readJSON(text: JENKINS_JSON)['ecrRepositoryUrl']
+            def region = readJSON(text: TF_JSON)['region']
+            def commitHash = shortCommitHash()
+            def ecrRepository = "dw-${serviceName}-microservice"
 
-            sh "aws ecr get-login-password --region ${tf['region']} | docker login --username AWS --password-stdin ${jenkins['ecrRepositoryUrl']}"
-            sh "docker push ${taggedImageCommitHash}"
-            sh "docker push ${taggedImageLatest}"
+            def ecrTagLatest = "${ecrUrl}/${ecrRepository}"
+            def ecrTagHash = "${ecrUrl}/${ecrRepository}:${commitHash}"
+
+            sh "docker tag ${microserviceImage} ${ecrTagLatest}"
+            sh "docker tag ${microserviceImage} ${ecrTagHash}"
+
+            sh "aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ecrUrl}"
+            sh "docker push ${ecrTagLatest}"
+            sh "docker push ${ecrTagHash}"
           }
         }
+      }
+    }
+
+    stage('Push docker images to Artifactory') {
+      steps {
+        script {
+          def jenkins = readJSON(text: JENKINS_JSON)
+          def jcrUrl = jenkins['jcrUrl']
+          def commitHash = shortCommitHash()
+
+          def artifactoryTagLatest = "${jcrUrl}/aline/dw-${serviceName}-microservice:latest"
+          def artifactoryTagHashed = "${jcrUrl}/aline/dw-${serviceName}-microservice:${commitHash}"
+
+          sh "docker tag ${microserviceImage} ${artifactoryTagLatest}"
+          sh "docker tag ${microserviceImage} ${artifactoryTagHashed}"
+
+          rtDockerPush(
+            serverId: 'DW-JCR',
+            image: "${artifactoryTagLatest}",
+            targetRepo: 'aline',
+          )
+
+          rtDockerPush(
+            serverId: 'DW-JCR',
+            image: "${artifactoryTagHashed}",
+            targetRepo: 'aline',
+          )
+        }
+      }
+    }
+
+    stage('Push Java Artifacts to Artifactory') {
+      steps {
+        rtUpload (
+          serverId: 'DW-Artifactory',
+          spec: /{
+              "files": [
+                {
+                  "pattern": "*-microservice\/target\/*.jar",
+                  "target": "Aline\/${serviceName}-microservice.jar"
+                }
+            ]
+          }/,
+        )
       }
     }
 
@@ -261,6 +306,10 @@ def checkServiceName(serviceName) {
   if (acceptable.contains(serviceName) == false) {
     error "Invalid service name: '${serviceName}'"
   }
+}
+
+def shortCommitHash() {
+  return bash("git log -1 --pretty=format:\"%h\"")
 }
 
 // Pipes act weird in jenkins so use eval to make sure it completes properly

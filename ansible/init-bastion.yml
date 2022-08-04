@@ -1,8 +1,14 @@
-- import_playbook: tasks/register-bastion.yml
+- import_playbook: tasks/register-instance.yml
+  vars:
+    tagName: "DW Bastion"
+    groupNames:
+      - aws-vars
+      - bastion
 
 - name: Initialize bastion server
   hosts: bastion
   remote_user: ubuntu
   become: yes
   roles:
+    - qol-config
     - bastion

@@ -1,14 +1,14 @@
 - import_playbook: tasks/register-instance.yml
   vars:
-    tagName: "DW Elastic"
+    tagName: "DW Artifactory"
     groupNames:
       - aws-vars
-      - elastic
+      - artifactory
 
-- name: Initialize elastic server
-  hosts: elastic
+- name: Init artifactory
+  hosts: artifactory
   remote_user: ubuntu
   become: yes
   roles:
     - qol-config
-    - elastic-stack
+    - artifactory

@@ -1,11 +1,3 @@
-- name: Set default editor to vim
-  blockinfile:
-    dest: /home/{{user_name}}/.bashrc
-    block: export EDITOR=vim
-    marker: "# {mark} - Ansible"
-    insertbefore: BOF
-    create: yes
-
 - name: Install tools
   apt:
     update_cache: yes

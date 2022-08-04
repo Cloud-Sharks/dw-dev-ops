@@ -1,9 +1,0 @@
-- import_playbook: tasks/register-bastion.yml
-
-- name: Initialize eks cluster
-  hosts: eks-setup
-  remote_user: ubuntu
-  become: yes
-  roles:
-    - eks-setup
-  environment: "{{aws_environment}}"
