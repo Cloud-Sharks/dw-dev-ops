@@ -64,7 +64,7 @@ services:
       - nginx-proxy-acme
     environment:
       - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
-      - VIRTUAL_HOST=artifactory.dw.cloudsharks.namejcr.localhost
+      - VIRTUAL_HOST=artifactory.dw.cloudsharks.name,jcr.localhost
       - VIRTUAL_PORT=${JF_ROUTER_ENTRYPOINTS_EXTERNALPORT}
       - LETSENCRYPT_HOST=artifactory.dw.cloudsharks.name
     volumes:
