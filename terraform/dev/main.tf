@@ -48,5 +48,15 @@ module "ec2" {
   public_subnet_id = module.vpc.public_subnet_ids[0]
   vpc_id           = module.vpc.vpc_id
   key_name         = var.key_name
-  hosted_zone      = var.hosted_zone
+}
+
+module "route53" {
+  source      = "../_modules/route53"
+  vpc_id      = module.vpc.vpc_id
+  ec2_configs = var.ec2_configs
+  hosted_zone = var.hosted_zone
+
+  depends_on = [
+    module.ec2
+  ]
 }

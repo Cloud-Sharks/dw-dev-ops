@@ -8,22 +8,12 @@ variable "ec2_configs" {
   }))
 }
 
-variable "public_subnet_id" {
+variable "hosted_zone" {
   type        = string
-  description = "Public Subnet to host instances in"
+  description = "Value of the zone to host domains in"
 }
 
 variable "vpc_id" {
   type        = string
   description = "Name of the VPC to create the security groups in"
-}
-
-variable "tags" {
-  type    = map(string)
-  default = {}
-}
-
-variable "key_name" {
-  type        = string
-  description = "Name of the key pair to ssh into instances with"
 }
