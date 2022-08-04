@@ -1,5 +1,5 @@
 include .env
-init: create_iam_policies create_cluster create_node_group install_services install_externaldns install_fluentbit
+init: create_iam_policies create_cluster create_node_group install_services install_cloudwatch install_externaldns install_fluentbit
 install_services: add_helm_repos create_service_accounts install_load_balancer
 
 SHELL := /bin/bash
@@ -138,6 +138,9 @@ install_fluentbit:
 		--from-literal=logs.region=$$RegionName
 
 	kubectl apply -f yaml/fluentbit.yml
+
+install_cloudwatch:
+	kubectl apply -f yaml/aws-logging-cloudwatch-configmap.yml
 
 update_env:
 	aws s3 cp .env s3://dw-infra-bucket/env/.eksctl.env
