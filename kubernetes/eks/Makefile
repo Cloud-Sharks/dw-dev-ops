@@ -12,6 +12,7 @@ endef
 
 configure:
 	-kubectl create secret generic microservice-secrets --from-env-file .env
+	kubectl apply -R -f eks-config
 
 install_bank:
 	-$(call helm,install,bank)
