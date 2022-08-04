@@ -2,10 +2,4 @@
 
 ## How to use
 
-- Use `ansible-playbook init-bastion.yml` to initialize the empty bastion instance
-
-- Use `ansible-playbook --ask-vault-pass init-eks-cluster.yml` to spin up an eks cluster
-
-  - Optionally you can pass in `-e "branch=<branch-name>" to use a specific branch`
-
-- Use `ansible-playbook --ask-vault-pass init-elasticstack.yml` to initialize an elasticstack instance with kibana and functionbeat
+- Use `ansible-playbook --ask-var-pass init-<playbook-name>` to run a playbook
