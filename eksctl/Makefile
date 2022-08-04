@@ -116,6 +116,9 @@ install_load_balancer:
 install_externaldns:
 	kubectl apply -f yaml/external-dns.yml
 
+install_externaldns:
+	kubectl apply -f yaml/external-dns.yml
+
 .ONESHELL:
 install_fluentbit:
 	kubectl apply -f yaml/amazon-cloudwatch-ns.yml
