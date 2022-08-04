@@ -30,7 +30,7 @@ ec2_configs = {
   }
   artifactory = {
     name          = "DW Artifactory"
-    ports         = [22,443]
+    ports         = [22,80,443]
     instance_type = "t3a.large"
     volume_size   = 20
     domains = ["jcr.dw", "artifactory.dw"]
