@@ -12,5 +12,5 @@
     "noImplicitReturns": true,
     "forceConsistentCasingInFileNames": true
   },
-  "files": ["src/index.ts", "./src/securityGroup.ts", "./src/taskDefinition.ts"]
+  "files": ["src/index.ts"]
 }

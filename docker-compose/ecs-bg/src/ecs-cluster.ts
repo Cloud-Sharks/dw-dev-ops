@@ -1,14 +1,12 @@
-import * as aws from "@pulumi/aws";
-import { Service } from "./Service";
-import { Deployment } from "./Deployment";
 import * as pulumi from "@pulumi/pulumi";
-
-export const vpc = aws.ec2.getVpcOutput({ default: true });
+import * as aws from "@pulumi/aws";
+import * as awsx from "@pulumi/awsx";
 
 // create a cluster
-const cluster = new aws.ecs.Cluster("dw-ecs");
+const cluster = new aws.ecs.Cluster("example");
 
 // define the default vpc info to deploy
+const vpc = aws.ec2.getVpcOutput({ default: true });
 const subnets = aws.ec2.getSubnetsOutput({
   filters: [
     {
@@ -19,7 +17,7 @@ const subnets = aws.ec2.getSubnetsOutput({
 });
 
 // create the security groups
-const securityGroup = new aws.ec2.SecurityGroup("dw-ecs-sg", {
+const securityGroup = new aws.ec2.SecurityGroup("example", {
   vpcId: vpc.id,
   description: "HTTP access",
   ingress: [
@@ -40,87 +38,85 @@ const securityGroup = new aws.ec2.SecurityGroup("dw-ecs-sg", {
   ],
 });
 
-const bankBlueTg = createFargateTask(Service.Bank, Deployment.Blue);
-const bankGreenTg = createFargateTask(Service.Bank, Deployment.Green);
-
 // define a loadbalancer
-const lb = new aws.lb.LoadBalancer("dw-ecs-lb", {
+const lb = new aws.lb.LoadBalancer("example", {
   securityGroups: [securityGroup.id],
   subnets: subnets.ids,
 });
 
-// const lbListner = new aws.lb.Listener("dw-ecs-listner", {
-//   loadBalancerArn: lb.arn,
-//   defaultActions: [],
-// });
+// target group for port 80
+const targetGroupA = new aws.lb.TargetGroup("example", {
+  port: 80,
+  protocol: "HTTP",
+  targetType: "ip",
+  vpcId: vpc.id,
+});
 
-// const rule = new aws.lb.ListenerRule("listener", {
-//   listenerArn: lbListner.arn,
-//   actions: [
-//     {
-//       type: "forward",
-//       targetGroupArn: createFargateTask(Service.Bank, Deployment.Blue).arn,
-//     },
-//   ],
-//   conditions: [
-//     {
-//       pathPattern: {
-//         values: ["/banks"],
-//       },
-//     },
-//   ],
-// });
-
-function createFargateTask(service: Service, deployment: Deployment) {
-  const microserviceName = `${service}-${deployment}`;
-
-  // // target group for port 80
-  // const targetGroup = new aws.lb.TargetGroup(`${microserviceName}-tg`, {
-  //   port: 80,
-  //   protocol: "HTTP",
-  //   targetType: "ip",
-  //   vpcId: vpc.id,
-  // });
-
-  const svc = new aws.ecs.Service(microserviceName, {
-    cluster: cluster.arn,
-    desiredCount: 1,
-    launchType: "FARGATE",
-    taskDefinition: createTaskDefinition(microserviceName).arn,
-    networkConfiguration: {
-      assignPublicIp: true,
-      subnets: subnets.ids,
-      securityGroups: [securityGroup.id],
+// listener for port 80
+const listenerA = new aws.lb.Listener("example", {
+  loadBalancerArn: lb.arn,
+  port: 80,
+  defaultActions: [
+    {
+      type: "forward",
+      targetGroupArn: targetGroupA.arn,
     },
-  });
+  ],
+});
 
-  return targetGroup;
-}
+const role = new aws.iam.Role("example", {
+  assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
+    Service: "ecs-tasks.amazonaws.com",
+  }),
+});
 
-export function createTaskDefinition(microserviceName: string) {
-  return new aws.ecs.TaskDefinition(microserviceName, {
-    family: microserviceName,
-    cpu: "256",
-    memory: "512",
-    networkMode: "awsvpc",
-    requiresCompatibilities: ["FARGATE"],
-    // executionRoleArn: role.arn,
-    containerDefinitions: pulumi.all([securityGroup]).apply(([sg]) =>
-      JSON.stringify([
-        {
-          name: microserviceName,
-          image: "nginx",
-          portMappings: [
-            {
-              containerPort: 80,
-              hostPort: 80,
-              protocol: sg.ingress[0].protocol,
-            },
-          ],
-        },
-      ]),
-    ),
-  });
-}
+new aws.iam.RolePolicyAttachment("example", {
+  role: role.name,
+  policyArn:
+    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+});
+
+const taskDefinition = new aws.ecs.TaskDefinition("example", {
+  family: "exampleA",
+  cpu: "256",
+  memory: "512",
+  networkMode: "awsvpc",
+  requiresCompatibilities: ["FARGATE"],
+  executionRoleArn: role.arn,
+  containerDefinitions: pulumi.all([securityGroup]).apply(([sg]) =>
+    JSON.stringify([
+      {
+        name: "my-app",
+        image: "nginx",
+        portMappings: [
+          {
+            containerPort: 80,
+            hostPort: 80,
+            protocol: sg.ingress[0].protocol,
+          },
+        ],
+      },
+    ]),
+  ),
+});
+
+const svcA = new aws.ecs.Service("example", {
+  cluster: cluster.arn,
+  desiredCount: 1,
+  launchType: "FARGATE",
+  taskDefinition: taskDefinition.arn,
+  networkConfiguration: {
+    assignPublicIp: true,
+    subnets: subnets.ids,
+    securityGroups: [securityGroup.id],
+  },
+  loadBalancers: [
+    {
+      targetGroupArn: targetGroupA.arn,
+      containerName: "my-app",
+      containerPort: 80,
+    },
+  ],
+});
 
 export const url = lb.dnsName;
