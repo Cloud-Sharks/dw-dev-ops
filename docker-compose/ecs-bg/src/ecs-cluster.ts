@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
+import { Output } from "@pulumi/pulumi";
 
 // create a cluster
 const cluster = new aws.ecs.Cluster("example");
@@ -16,27 +17,7 @@ const subnets = aws.ec2.getSubnetsOutput({
   ],
 });
 
-// create the security groups
-const securityGroup = new aws.ec2.SecurityGroup("example", {
-  vpcId: vpc.id,
-  description: "HTTP access",
-  ingress: [
-    {
-      protocol: "tcp",
-      fromPort: 80,
-      toPort: 80,
-      cidrBlocks: ["0.0.0.0/0"],
-    },
-  ],
-  egress: [
-    {
-      protocol: "-1",
-      fromPort: 0,
-      toPort: 0,
-      cidrBlocks: ["0.0.0.0/0"],
-    },
-  ],
-});
+const securityGroup = port80SecurityGroup();
 
 // define a loadbalancer
 const lb = new aws.lb.LoadBalancer("example", {
@@ -136,5 +117,28 @@ const svcA = new aws.ecs.Service("example", {
     },
   ],
 });
+
+function port80SecurityGroup(): aws.ec2.SecurityGroup {
+  return new aws.ec2.SecurityGroup("example", {
+    vpcId: vpc.id,
+    description: "HTTP access",
+    ingress: [
+      {
+        protocol: "tcp",
+        fromPort: 80,
+        toPort: 80,
+        cidrBlocks: ["0.0.0.0/0"],
+      },
+    ],
+    egress: [
+      {
+        protocol: "-1",
+        fromPort: 0,
+        toPort: 0,
+        cidrBlocks: ["0.0.0.0/0"],
+      },
+    ],
+  });
+}
 
 export const url = lb.dnsName;
