@@ -103,21 +103,19 @@ const taskDefinition = new aws.ecs.TaskDefinition("example", {
   networkMode: "awsvpc",
   requiresCompatibilities: ["FARGATE"],
   executionRoleArn: role.arn,
-  containerDefinitions: pulumi.all([securityGroup]).apply(([sg]) =>
-    JSON.stringify([
-      {
-        name: "my-app",
-        image: "nginx",
-        portMappings: [
-          {
-            containerPort: 80,
-            hostPort: 80,
-            protocol: sg.ingress[0].protocol,
-          },
-        ],
-      },
-    ]),
-  ),
+  containerDefinitions: JSON.stringify([
+    {
+      name: "my-app",
+      image: "nginx",
+      portMappings: [
+        {
+          containerPort: 80,
+          hostPort: 80,
+          protocol: "tcp",
+        },
+      ],
+    },
+  ]),
 });
 
 const svcA = new aws.ecs.Service("example", {
