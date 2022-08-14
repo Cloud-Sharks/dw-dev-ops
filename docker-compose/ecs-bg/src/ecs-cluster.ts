@@ -64,6 +64,23 @@ const listenerA = new aws.lb.Listener("example", {
   ],
 });
 
+const listenerRule = new aws.lb.ListenerRule("rule", {
+  listenerArn: listenerA.arn,
+  actions: [
+    {
+      type: "forward",
+      targetGroupArn: targetGroupA.arn,
+    },
+  ],
+  conditions: [
+    {
+      pathPattern: {
+        values: ["/test"],
+      },
+    },
+  ],
+});
+
 const role = new aws.iam.Role("example", {
   assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
     Service: "ecs-tasks.amazonaws.com",
