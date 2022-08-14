@@ -2,6 +2,8 @@ import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import { Output } from "@pulumi/pulumi";
+import { Deployment } from "./Deployment";
+import { Service } from "./Service";
 
 // create a cluster
 const cluster = new aws.ecs.Cluster("example");
@@ -20,76 +22,86 @@ const subnets = aws.ec2.getSubnetsOutput({
 const securityGroup = port80SecurityGroup();
 const executionRole = generateExecutionRole();
 
-const { loadBalancer, listener } = createLoadBalancer(
-  "dw-ecs-lb",
-  "dw-ecs-listener",
-);
+const loadBalancer = createLoadBalancer("dw-ecs-lb");
+const listener = createListener("dw-ecs-listener", 80, loadBalancer);
 
-// target group for port 80
-const targetGroupA = new aws.lb.TargetGroup("example", {
-  port: 80,
-  protocol: "HTTP",
-  targetType: "ip",
-  vpcId: vpc.id,
-});
+createService(Service.Bank, Deployment.Green);
+createService(Service.Bank, Deployment.Blue);
 
-const listenerRule = new aws.lb.ListenerRule("rule", {
-  listenerArn: listener.arn,
-  actions: [
-    {
-      type: "forward",
-      targetGroupArn: targetGroupA.arn,
-    },
-  ],
-  conditions: [
-    {
-      pathPattern: {
-        values: ["/test"],
+function createService(
+  service: Service,
+  deployment: Deployment,
+): aws.ecs.Service {
+  const serviceName = `${service}-${deployment}`;
+
+  // target group for port 80
+  const serviceTg = new aws.lb.TargetGroup(serviceName, {
+    port: 80,
+    protocol: "HTTP",
+    targetType: "ip",
+    vpcId: vpc.id,
+  });
+
+  const listenerRule = new aws.lb.ListenerRule(serviceName, {
+    listenerArn: listener.arn,
+    actions: [
+      {
+        type: "forward",
+        targetGroupArn: serviceTg.arn,
       },
-    },
-  ],
-});
-
-const taskDefinition = new aws.ecs.TaskDefinition("example", {
-  family: "exampleA",
-  cpu: "256",
-  memory: "512",
-  networkMode: "awsvpc",
-  requiresCompatibilities: ["FARGATE"],
-  executionRoleArn: executionRole.arn,
-  containerDefinitions: JSON.stringify([
-    {
-      name: "my-app",
-      image: "nginx",
-      portMappings: [
-        {
-          containerPort: 80,
-          hostPort: 80,
-          protocol: "tcp",
+    ],
+    conditions: [
+      {
+        pathPattern: {
+          values: [serviceName],
         },
-      ],
-    },
-  ]),
-});
+      },
+    ],
+  });
 
-const svcA = new aws.ecs.Service("example", {
-  cluster: cluster.arn,
-  desiredCount: 1,
-  launchType: "FARGATE",
-  taskDefinition: taskDefinition.arn,
-  networkConfiguration: {
-    assignPublicIp: true,
-    subnets: subnets.ids,
-    securityGroups: [securityGroup.id],
-  },
-  loadBalancers: [
-    {
-      targetGroupArn: targetGroupA.arn,
-      containerName: "my-app",
-      containerPort: 80,
+  const taskDefinition = new aws.ecs.TaskDefinition(serviceName, {
+    family: serviceName,
+    cpu: "256",
+    memory: "512",
+    networkMode: "awsvpc",
+    requiresCompatibilities: ["FARGATE"],
+    executionRoleArn: executionRole.arn,
+    containerDefinitions: JSON.stringify([
+      {
+        name: serviceName,
+        image: "nginx",
+        portMappings: [
+          {
+            containerPort: 80,
+            hostPort: 80,
+            protocol: "tcp",
+          },
+        ],
+      },
+    ]),
+  });
+
+  const svc = new aws.ecs.Service(serviceName, {
+    cluster: cluster.arn,
+    desiredCount: 1,
+    launchType: "FARGATE",
+    taskDefinition: taskDefinition.arn,
+    networkConfiguration: {
+      assignPublicIp: true,
+      subnets: subnets.ids,
+      securityGroups: [securityGroup.id],
     },
-  ],
-});
+    loadBalancers: [
+      {
+        targetGroupArn: serviceTg.arn,
+        containerName: serviceName,
+        containerPort: 80,
+      },
+    ],
+  });
+
+  return svc;
+}
 
 function port80SecurityGroup(): aws.ec2.SecurityGroup {
   return new aws.ec2.SecurityGroup("example", {
@@ -114,19 +126,22 @@ function port80SecurityGroup(): aws.ec2.SecurityGroup {
   });
 }
 
-function createLoadBalancer(
-  lbName: string,
-  listenerName: string,
-): { loadBalancer: aws.lb.LoadBalancer; listener: aws.lb.Listener } {
-  const loadBalancer = new aws.lb.LoadBalancer(lbName, {
-    name: lbName,
+function createLoadBalancer(name: string): aws.lb.LoadBalancer {
+  return new aws.lb.LoadBalancer(name, {
+    name,
     securityGroups: [securityGroup.id],
     subnets: subnets.ids,
   });
+}
 
-  const listener = new aws.lb.Listener(listenerName, {
+function createListener(
+  name: string,
+  port: number,
+  loadBalancer: aws.lb.LoadBalancer,
+) {
+  const listener = new aws.lb.Listener(name, {
     loadBalancerArn: loadBalancer.arn,
-    port: 80,
+    port,
     defaultActions: [
       {
         type: "fixed-response",
@@ -138,10 +153,7 @@ function createLoadBalancer(
     ],
   });
 
-  return {
-    loadBalancer,
-    listener,
-  };
+  return listener;
 }
 
 function generateExecutionRole(): aws.iam.Role {
