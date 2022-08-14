@@ -18,12 +18,12 @@ const subnets = aws.ec2.getSubnetsOutput({
 });
 
 const securityGroup = port80SecurityGroup();
+const executionRole = generateExecutionRole();
 
-// define a loadbalancer
-const lb = new aws.lb.LoadBalancer("example", {
-  securityGroups: [securityGroup.id],
-  subnets: subnets.ids,
-});
+const { loadBalancer, listener } = createLoadBalancer(
+  "dw-ecs-lb",
+  "dw-ecs-listener",
+);
 
 // target group for port 80
 const targetGroupA = new aws.lb.TargetGroup("example", {
@@ -33,23 +33,8 @@ const targetGroupA = new aws.lb.TargetGroup("example", {
   vpcId: vpc.id,
 });
 
-// listener for port 80
-const listenerA = new aws.lb.Listener("example", {
-  loadBalancerArn: lb.arn,
-  port: 80,
-  defaultActions: [
-    {
-      type: "fixed-response",
-      fixedResponse: {
-        statusCode: "404",
-        contentType: "text/plain",
-      },
-    },
-  ],
-});
-
 const listenerRule = new aws.lb.ListenerRule("rule", {
-  listenerArn: listenerA.arn,
+  listenerArn: listener.arn,
   actions: [
     {
       type: "forward",
@@ -65,25 +50,13 @@ const listenerRule = new aws.lb.ListenerRule("rule", {
   ],
 });
 
-const role = new aws.iam.Role("example", {
-  assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
-    Service: "ecs-tasks.amazonaws.com",
-  }),
-});
-
-new aws.iam.RolePolicyAttachment("example", {
-  role: role.name,
-  policyArn:
-    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-});
-
 const taskDefinition = new aws.ecs.TaskDefinition("example", {
   family: "exampleA",
   cpu: "256",
   memory: "512",
   networkMode: "awsvpc",
   requiresCompatibilities: ["FARGATE"],
-  executionRoleArn: role.arn,
+  executionRoleArn: executionRole.arn,
   containerDefinitions: JSON.stringify([
     {
       name: "my-app",
@@ -141,4 +114,50 @@ function port80SecurityGroup(): aws.ec2.SecurityGroup {
   });
 }
 
-export const url = lb.dnsName;
+function createLoadBalancer(
+  lbName: string,
+  listenerName: string,
+): { loadBalancer: aws.lb.LoadBalancer; listener: aws.lb.Listener } {
+  const loadBalancer = new aws.lb.LoadBalancer(lbName, {
+    name: lbName,
+    securityGroups: [securityGroup.id],
+    subnets: subnets.ids,
+  });
+
+  const listener = new aws.lb.Listener(listenerName, {
+    loadBalancerArn: loadBalancer.arn,
+    port: 80,
+    defaultActions: [
+      {
+        type: "fixed-response",
+        fixedResponse: {
+          statusCode: "404",
+          contentType: "text/plain",
+        },
+      },
+    ],
+  });
+
+  return {
+    loadBalancer,
+    listener,
+  };
+}
+
+function generateExecutionRole(): aws.iam.Role {
+  const role = new aws.iam.Role("example", {
+    assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
+      Service: "ecs-tasks.amazonaws.com",
+    }),
+  });
+
+  new aws.iam.RolePolicyAttachment("example", {
+    role: role.name,
+    policyArn:
+      "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+  });
+
+  return role;
+}
+
+export const url = loadBalancer.dnsName;
