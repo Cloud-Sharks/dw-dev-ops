@@ -136,7 +136,7 @@ function createListener(
   port: number,
   loadBalancer: aws.lb.LoadBalancer,
 ) {
-  const listener = new aws.lb.Listener(name, {
+  return new aws.lb.Listener(name, {
     loadBalancerArn: loadBalancer.arn,
     port,
     defaultActions: [
@@ -150,8 +150,6 @@ function createListener(
       },
     ],
   });
-
-  return listener;
 }
 
 function generateExecutionRole(): aws.iam.Role {
