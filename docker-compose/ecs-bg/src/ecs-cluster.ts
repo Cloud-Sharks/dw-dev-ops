@@ -9,15 +9,7 @@ const cluster = new aws.ecs.Cluster("example");
 
 // define the default vpc info to deploy
 const vpc = aws.ec2.getVpcOutput({ default: true });
-const subnets = aws.ec2.getSubnetsOutput({
-  filters: [
-    {
-      name: "vpc-id",
-      values: [vpc.id],
-    },
-  ],
-});
-
+const subnets = getSubnets(vpc.apply((v) => v.id));
 const securityGroup = generateSecurityGroup(vpc.apply((v) => v.id));
 const executionRole = generateExecutionRole();
 
@@ -172,6 +164,17 @@ function generateExecutionRole(): aws.iam.Role {
   });
 
   return role;
+}
+
+function getSubnets(vpcId: Output<string>): Output<aws.ec2.GetSubnetsResult> {
+  return aws.ec2.getSubnetsOutput({
+    filters: [
+      {
+        name: "vpc-id",
+        values: [vpcId],
+      },
+    ],
+  });
 }
 
 export const url = loadBalancer.dnsName;
