@@ -1,4 +1,6 @@
 import * as aws from "@pulumi/aws";
+import { GetSubnetsResult } from "@pulumi/aws/ec2";
+import { Output } from "@pulumi/pulumi";
 import { Deployment } from "./Deployment";
 import { Service } from "./Service";
 
@@ -19,7 +21,7 @@ const subnets = aws.ec2.getSubnetsOutput({
 const securityGroup = port80SecurityGroup();
 const executionRole = generateExecutionRole();
 
-const loadBalancer = createLoadBalancer("dw-ecs-lb");
+const loadBalancer = createLoadBalancer("dw-ecs-lb", [securityGroup], subnets);
 const listener = createListener("dw-ecs-listener", 80, loadBalancer);
 
 createService(Service.Bank, Deployment.Green);
@@ -123,10 +125,14 @@ function port80SecurityGroup(): aws.ec2.SecurityGroup {
   });
 }
 
-function createLoadBalancer(name: string): aws.lb.LoadBalancer {
+function createLoadBalancer(
+  name: string,
+  securityGroups: aws.ec2.SecurityGroup[],
+  subnets: Output<GetSubnetsResult>,
+): aws.lb.LoadBalancer {
   return new aws.lb.LoadBalancer(name, {
     name,
-    securityGroups: [securityGroup.id],
+    securityGroups: securityGroups.map((g) => g.id),
     subnets: subnets.ids,
   });
 }
