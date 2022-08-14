@@ -58,8 +58,11 @@ const listenerA = new aws.lb.Listener("example", {
   port: 80,
   defaultActions: [
     {
-      type: "forward",
-      targetGroupArn: targetGroupA.arn,
+      type: "fixed-response",
+      fixedResponse: {
+        statusCode: "404",
+        contentType: "text/plain",
+      },
     },
   ],
 });
