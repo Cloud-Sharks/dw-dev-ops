@@ -53,7 +53,7 @@ function createService(
     conditions: [
       {
         pathPattern: {
-          values: [serviceName],
+          values: [`/${serviceName}`],
         },
       },
     ],
