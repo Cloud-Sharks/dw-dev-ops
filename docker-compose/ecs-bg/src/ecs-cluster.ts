@@ -4,24 +4,41 @@ import { Output } from "@pulumi/pulumi";
 import { Deployment } from "./Deployment";
 import { Service } from "./Service";
 
+interface ServiceConfig {
+  vpcId: Output<string>;
+  cluster: aws.ecs.Cluster;
+  listener: aws.lb.Listener;
+  securityGroups: aws.ec2.SecurityGroup[];
+  executionRole: aws.iam.Role;
+}
+
 // create a cluster
 const cluster = new aws.ecs.Cluster("example");
 
 // define the default vpc info to deploy
 const vpc = aws.ec2.getVpcOutput({ default: true });
-const subnets = getSubnets(vpc.apply((v) => v.id));
-const securityGroup = generateSecurityGroup(vpc.apply((v) => v.id));
+const subnets = getSubnets(vpc.id);
+const securityGroup = generateSecurityGroup(vpc.id);
 const executionRole = generateExecutionRole();
 
 const loadBalancer = createLoadBalancer("dw-ecs-lb", [securityGroup], subnets);
 const listener = createListener("dw-ecs-listener", 80, loadBalancer);
 
-createService(Service.Bank, Deployment.Green);
-createService(Service.Bank, Deployment.Blue);
+const createServiceConfig: ServiceConfig = {
+  vpcId: vpc.id,
+  securityGroups: [securityGroup],
+  cluster,
+  executionRole,
+  listener,
+};
+
+createService(Service.Bank, Deployment.Green, createServiceConfig);
+createService(Service.Bank, Deployment.Blue, createServiceConfig);
 
 function createService(
   service: Service,
   deployment: Deployment,
+  config: ServiceConfig,
 ): aws.ecs.Service {
   const serviceName = `${service}-${deployment}`;
 
@@ -30,11 +47,11 @@ function createService(
     port: 80,
     protocol: "HTTP",
     targetType: "ip",
-    vpcId: vpc.id,
+    vpcId: config.vpcId,
   });
 
   const listenerRule = new aws.lb.ListenerRule(serviceName, {
-    listenerArn: listener.arn,
+    listenerArn: config.listener.arn,
     actions: [
       {
         type: "forward",
@@ -56,7 +73,7 @@ function createService(
     memory: "512",
     networkMode: "awsvpc",
     requiresCompatibilities: ["FARGATE"],
-    executionRoleArn: executionRole.arn,
+    executionRoleArn: config.executionRole.arn,
     containerDefinitions: JSON.stringify([
       {
         name: serviceName,
@@ -73,14 +90,14 @@ function createService(
   });
 
   const svc = new aws.ecs.Service(serviceName, {
-    cluster: cluster.arn,
+    cluster: config.cluster.arn,
     desiredCount: 1,
     launchType: "FARGATE",
     taskDefinition: taskDefinition.arn,
     networkConfiguration: {
       assignPublicIp: true,
-      subnets: subnets.ids,
-      securityGroups: [securityGroup.id],
+      subnets: getSubnets(config.vpcId).ids,
+      securityGroups: config.securityGroups.map((s) => s.id),
     },
     loadBalancers: [
       {
