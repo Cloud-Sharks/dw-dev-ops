@@ -148,6 +148,7 @@ function createListener(
         fixedResponse: {
           statusCode: "404",
           contentType: "text/plain",
+          messageBody: "Content not found",
         },
       },
     ],
