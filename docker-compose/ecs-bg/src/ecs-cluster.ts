@@ -18,7 +18,7 @@ const subnets = aws.ec2.getSubnetsOutput({
   ],
 });
 
-const securityGroup = port80SecurityGroup();
+const securityGroup = generateSecurityGroup(vpc.apply((v) => v.id));
 const executionRole = generateExecutionRole();
 
 const loadBalancer = createLoadBalancer("dw-ecs-lb", [securityGroup], subnets);
@@ -102,9 +102,9 @@ function createService(
   return svc;
 }
 
-function port80SecurityGroup(): aws.ec2.SecurityGroup {
+function generateSecurityGroup(vpcId: Output<string>): aws.ec2.SecurityGroup {
   return new aws.ec2.SecurityGroup("example", {
-    vpcId: vpc.id,
+    vpcId: vpcId,
     description: "HTTP access",
     ingress: [
       {
