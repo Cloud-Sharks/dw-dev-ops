@@ -95,6 +95,7 @@ export function createService(
     });
 
     const svc = new aws.ecs.Service(serviceName, {
+        name: serviceName,
         cluster: config.cluster.arn,
         desiredCount: 1,
         launchType: "FARGATE",
