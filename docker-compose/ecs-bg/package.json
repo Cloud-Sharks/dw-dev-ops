@@ -12,6 +12,6 @@
         "@types/node": "^18.7.4"
     },
     "scripts": {
-        "start": "npx ts-node src/index.ts"
+        "start": "npx ts-node src/cli.ts"
     }
 }
