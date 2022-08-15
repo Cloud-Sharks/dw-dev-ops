@@ -1,5 +1,6 @@
 {
     "name": "ecs-bg",
+    "main": "src/index.ts",
     "packageManager": "yarn@3.2.2",
     "dependencies": {
         "@pulumi/aws": "^5.10.0",
