@@ -19,7 +19,7 @@ const run = async () => {
     // Create our stack
     const args: InlineProgramArgs = {
         stackName: "ecs-bg-node",
-        projectName: "ecs-bg-node",
+        projectName: "ecs-bg",
         program: createCluster,
     };
 
