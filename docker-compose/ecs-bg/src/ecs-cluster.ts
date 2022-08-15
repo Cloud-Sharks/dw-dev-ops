@@ -1,5 +1,4 @@
 import * as aws from "@pulumi/aws";
-import * as awsx from "@pulumi/awsx";
 import { GetSubnetsResult } from "@pulumi/aws/ec2";
 import { Output } from "@pulumi/pulumi";
 import { Deployment } from "./Deployment";
@@ -14,7 +13,9 @@ interface ServiceConfig {
 }
 
 // create a cluster
-const cluster = new aws.ecs.Cluster("example");
+const cluster = new aws.ecs.Cluster("dw-ecs-cluster", {
+    name: "dw-ecs-cluster",
+});
 
 // define the default vpc info to deploy
 const vpc = aws.ec2.getVpcOutput({ default: true });
@@ -33,8 +34,8 @@ const createServiceConfig: ServiceConfig = {
     listener,
 };
 
-createService(Service.Bank, Deployment.Green, createServiceConfig);
 createService(Service.Bank, Deployment.Blue, createServiceConfig);
+createService(Service.Bank, Deployment.Green, createServiceConfig);
 
 function createService(
     service: Service,
