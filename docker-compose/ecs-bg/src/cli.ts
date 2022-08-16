@@ -19,18 +19,18 @@ if (args?.length > 0 && args[0]) {
 }
 
 const parseCommand = (): Command => {
-    const valid0 = ["point", "create", "destroy"];
-    const valid1 = ["bank", "transaction", "user", "underwriter"];
-    const valid2 = ["green", "blue"];
+    const validAction = ["point", "create", "destroy"];
+    const validService = ["bank", "transaction", "user", "underwriter"];
+    const validDeployment = ["green", "blue"];
 
     const action: string = args[0];
     const service = args[1];
     const deployment = args[2];
 
     if (
-        !valid0.includes(action) ||
-        !valid1.includes(service) ||
-        !valid2.includes(deployment)
+        !validAction.includes(action) ||
+        !validService.includes(service) ||
+        !validDeployment.includes(deployment)
     ) {
         console.error("Invalid parameters");
         process.exit(1);
