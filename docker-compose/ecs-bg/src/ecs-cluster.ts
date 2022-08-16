@@ -1,7 +1,9 @@
 import * as aws from "@pulumi/aws";
+import * as path from "path";
 import { GetSubnetsResult } from "@pulumi/aws/ec2";
 import { Output } from "@pulumi/pulumi";
 import { applyCommand, generateServiceName } from "./service-commands";
+import { envToObject, getImageName } from "./util";
 import {
     Command,
     Deployment,
@@ -68,23 +70,27 @@ export const createService = (
 
     // target group for port 80
     const serviceTg = new aws.lb.TargetGroup(serviceName, {
+        name: serviceName,
         port: 80,
         protocol: "HTTP",
         targetType: "ip",
         vpcId: config.vpcId,
     });
 
+    const envPath = path.join(__dirname, ".env");
+    const env = envToObject(envPath);
+
     const taskDefinition = new aws.ecs.TaskDefinition(serviceName, {
         family: serviceName,
-        cpu: "256",
-        memory: "512",
+        cpu: "1024",
+        memory: "2048",
         networkMode: "awsvpc",
         requiresCompatibilities: ["FARGATE"],
         executionRoleArn: config.executionRole.arn,
         containerDefinitions: JSON.stringify([
             {
                 name: serviceName,
-                image: "nginx",
+                image: getImageName(envPath, microservice),
                 portMappings: [
                     {
                         containerPort: 80,
@@ -92,12 +98,7 @@ export const createService = (
                         protocol: "tcp",
                     },
                 ],
-                environment: [
-                    {
-                        name: "variable",
-                        values: "sdfdsf",
-                    },
-                ],
+                environment: env,
             },
         ]),
     });
