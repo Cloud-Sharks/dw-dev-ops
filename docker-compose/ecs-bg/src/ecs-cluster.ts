@@ -1,6 +1,12 @@
 import * as aws from "@pulumi/aws";
 import { GetSubnetsResult } from "@pulumi/aws/ec2";
-import { Output } from "@pulumi/pulumi";
+import { Output, Input, all } from "@pulumi/pulumi";
+import {
+    applyCommand,
+    Command,
+    generateServiceName,
+    getEcsService,
+} from "./service-commands";
 import { Deployment } from "./Deployment";
 import { Service } from "./Service";
 
@@ -38,6 +44,17 @@ export async function createCluster() {
         executionRole,
         listener,
     };
+
+    // TODO: Get input from function
+    var commandResults = await applyCommand(Command.Create, {
+        clusterArn: cluster.arn,
+        deployment: Deployment.Blue,
+        service: Service.Underwriter,
+    });
+
+    const services = commandResults.map((result) =>
+        createService(result.service, result.deployment, createServiceConfig),
+    );
 }
 
 export function createService(
@@ -45,7 +62,7 @@ export function createService(
     deployment: Deployment,
     config: ServiceConfig,
 ): aws.ecs.Service {
-    const serviceName = `${service}-${deployment}`;
+    const serviceName = generateServiceName(service, deployment);
 
     // target group for port 80
     const serviceTg = new aws.lb.TargetGroup(serviceName, {
@@ -53,23 +70,6 @@ export function createService(
         protocol: "HTTP",
         targetType: "ip",
         vpcId: config.vpcId,
-    });
-
-    const listenerRule = new aws.lb.ListenerRule(serviceName, {
-        listenerArn: config.listener.arn,
-        actions: [
-            {
-                type: "forward",
-                targetGroupArn: serviceTg.arn,
-            },
-        ],
-        conditions: [
-            {
-                pathPattern: {
-                    values: [`/${serviceName}`],
-                },
-            },
-        ],
     });
 
     const taskDefinition = new aws.ecs.TaskDefinition(serviceName, {
@@ -114,7 +114,42 @@ export function createService(
         ],
     });
 
+    const services = config.cluster.arn.apply(async (arn) => {
+        const blue = await getEcsService(arn, service, Deployment.Blue);
+        const green = await getEcsService(arn, service, Deployment.Green);
+
+        return {
+            blue: blue.err === null ? (blue.err as Error) : blue.result!,
+            green: green.err === null ? (green.err as Error) : green.result!,
+        };
+    });
+
+    const listenerRule = generateListener(serviceName, config, serviceTg);
+
     return svc;
+}
+
+function generateListener(
+    serviceName: string,
+    config: ServiceConfig,
+    serviceTg: aws.lb.TargetGroup,
+) {
+    return new aws.lb.ListenerRule(serviceName, {
+        listenerArn: config.listener.arn,
+        actions: [
+            {
+                type: "forward",
+                targetGroupArn: serviceTg.arn,
+            },
+        ],
+        conditions: [
+            {
+                pathPattern: {
+                    values: [`/${serviceName}`],
+                },
+            },
+        ],
+    });
 }
 
 function generateSecurityGroup(vpcId: Output<string>): aws.ec2.SecurityGroup {
@@ -174,13 +209,13 @@ function createListener(
 }
 
 function generateExecutionRole(): aws.iam.Role {
-    const role = new aws.iam.Role("ecs-exexution-role", {
+    const role = new aws.iam.Role("ecs-execution-role", {
         assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
             Service: "ecs-tasks.amazonaws.com",
         }),
     });
 
-    new aws.iam.RolePolicyAttachment("ecs-exexution-role-attachment", {
+    new aws.iam.RolePolicyAttachment("ecs-execution-role-attachment", {
         role: role.name,
         policyArn:
             "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",

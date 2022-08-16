@@ -4,7 +4,7 @@ import {
     LocalWorkspace,
     UpResult,
 } from "@pulumi/pulumi/automation";
-import { createCluster, createService } from "./ecs-cluster";
+import { createCluster } from "./ecs-cluster";
 
 const process = require("process");
 const [, , ...args] = process.argv;
@@ -34,7 +34,6 @@ const run = async () => {
     }
 
     const summary = JSON.stringify(result?.summary.resourceChanges, null, 4);
-    console.log(`update summary: \n${summary}`);
 };
 
 run().catch((err) => console.log(err));
