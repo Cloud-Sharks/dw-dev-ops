@@ -45,7 +45,7 @@ const parseCommand = (): Command => {
 const run = async () => {
     const command = parseCommand();
 
-    console.log("command :>> ", command);
+    console.info("command :>> ", command);
 
     // Create our stack
     const args: InlineProgramArgs = {
@@ -67,4 +67,4 @@ const run = async () => {
     const summary = JSON.stringify(result?.summary.resourceChanges, null, 4);
 };
 
-run().catch((err) => console.log(err));
+run().catch((err) => console.error(err));

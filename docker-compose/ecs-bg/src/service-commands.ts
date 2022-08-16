@@ -21,42 +21,31 @@ async function getExistingServices(
         Service.Transaction,
         Service.Underwriter,
     ];
+    const possibleMicroservices: Microservice[] = services.flatMap((service) =>
+        deployments.map((deployment) => ({
+            deployment,
+            service,
+            isTargeted: false,
+        })),
+    );
+
+    const getSvc = (microservice: Microservice): Promise<GetEscServiceResult> =>
+        new Promise((res, rej) => {
+            return clusterArn
+                .apply((clusterArn) =>
+                    getEcsService(clusterArn, microservice).catch(() => null),
+                )
+                .apply((svc) => {
+                    if (svc?.result) res(svc);
+                    else rej();
+                });
+        });
 
     const existingServices: GetEscServiceResult[] = [];
 
-    const getService = (
-        service: Service,
-        deployment: Deployment,
-    ): Promise<GetEscServiceResult> =>
-        new Promise((res, rej) => {
-            const microservice: Microservice = {
-                deployment,
-                service,
-                isTargeted: false,
-            };
-
-            return clusterArn.apply(async (clusterArn) => {
-                const svc = await getEcsService(clusterArn, microservice);
-
-                if (svc.err) {
-                    rej(svc.err);
-                }
-
-                if (svc.result?.desiredCount == 0) {
-                    rej("Desired count is 0");
-                }
-
-                res(svc);
-            });
-        });
-
-    for (const service of services) {
-        for (const deployment of deployments) {
-            await getService(service, deployment).then(
-                (res) => existingServices.push(res),
-                (err) => {},
-            );
-        }
+    for (const microservice of possibleMicroservices) {
+        const svc = await getSvc(microservice).catch(() => null);
+        if (svc?.result) existingServices.push(svc);
     }
 
     return existingServices.map((svc) => svc.result!);
@@ -122,13 +111,16 @@ export async function getEcsService(
     clusterArn: string,
     microservice: Microservice,
 ): Promise<GetEscServiceResult> {
-    return await aws.ecs
-        .getService({
+    try {
+        const svc = await aws.ecs.getService({
             clusterArn,
             serviceName: generateServiceName(microservice),
-        })
-        .then(
-            (res) => ({ err: null, result: res }),
-            (err) => ({ err, result: null }),
-        );
+        });
+
+        if (svc.desiredCount === 0) throw new Error("Desired count is 0");
+
+        return { err: null, result: svc };
+    } catch (error) {
+        return { err: error, result: null };
+    }
 }
