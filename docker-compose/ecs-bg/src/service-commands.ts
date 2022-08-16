@@ -144,16 +144,6 @@ export async function getEcsService(
     service: Service,
     deployment: Deployment,
 ): Promise<GetEscServiceResult> {
-    const result = await aws.ecs
-        .getService({
-            clusterArn,
-            serviceName: generateServiceName(service, deployment),
-        })
-        .then(
-            (res) => ({ err: null, result: res }),
-            (err) => ({ err, result: null }),
-        );
-
     return await aws.ecs
         .getService({
             clusterArn,
