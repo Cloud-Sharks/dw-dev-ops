@@ -1,3 +1,3 @@
-import { createCluster } from "./ecs-cluster";
+import { updateCluster } from "./ecs-cluster";
 
-createCluster();
+updateCluster();

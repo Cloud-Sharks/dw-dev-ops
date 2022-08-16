@@ -4,7 +4,10 @@ import {
     LocalWorkspace,
     UpResult,
 } from "@pulumi/pulumi/automation";
-import { createCluster } from "./ecs-cluster";
+import { updateCluster } from "./ecs-cluster";
+import { Command, Action } from "./service-commands";
+import { Deployment } from "./Deployment";
+import { Service } from "./Service";
 
 const process = require("process");
 const [, , ...args] = process.argv;
@@ -15,12 +18,41 @@ if (args?.length > 0 && args[0]) {
     if (args[0] === "destroy") destroy = true;
 }
 
+const parseCommand = (): Command => {
+    const valid0 = ["point", "create", "destroy"];
+    const valid1 = ["bank", "transaction", "user", "underwriter"];
+    const valid2 = ["green", "blue"];
+
+    const action: string = args[0];
+    const service = args[1];
+    const deployment = args[2];
+
+    if (
+        !valid0.includes(action) ||
+        !valid1.includes(service) ||
+        !valid2.includes(deployment)
+    ) {
+        console.error("Invalid parameters");
+        process.exit(1);
+    }
+
+    return {
+        action: action as Action,
+        deployment: deployment as Deployment,
+        service: service as Service,
+    };
+};
+
 const run = async () => {
+    const command = parseCommand();
+
+    console.log("command :>> ", command);
+
     // Create our stack
     const args: InlineProgramArgs = {
         stackName: "ecs-bg-node",
         projectName: "ecs-bg",
-        program: createCluster,
+        program: () => updateCluster(command),
     };
 
     const stack = await LocalWorkspace.createOrSelectStack(args);

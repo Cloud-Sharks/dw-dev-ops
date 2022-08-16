@@ -17,21 +17,26 @@ interface ServiceConfig {
     securityGroups: aws.ec2.SecurityGroup[];
     executionRole: aws.iam.Role;
 }
-// define the default vpc info to deploy
-const vpc = aws.ec2.getVpcOutput({ default: true });
-const subnets = getSubnets(vpc.id);
-// create a cluster
-const cluster = new aws.ecs.Cluster("dw-ecs-cluster", {
-    name: "dw-ecs-cluster",
-});
 
-const securityGroup = generateSecurityGroup(vpc.id);
-const executionRole = generateExecutionRole();
+export const updateCluster = async (command?: Command) => {
+    // define the default vpc info to deploy
+    const vpc = aws.ec2.getVpcOutput({ default: true });
+    const subnets = getSubnets(vpc.id);
+    // create a cluster
+    const cluster = new aws.ecs.Cluster("dw-ecs-cluster", {
+        name: "dw-ecs-cluster",
+    });
 
-const loadBalancer = createLoadBalancer("dw-ecs-lb", [securityGroup], subnets);
-const listener = createListener("dw-ecs-listener", 80, loadBalancer);
+    const securityGroup = generateSecurityGroup(vpc.id);
+    const executionRole = generateExecutionRole();
 
-export const createCluster = async () => {
+    const loadBalancer = createLoadBalancer(
+        "dw-ecs-lb",
+        [securityGroup],
+        subnets,
+    );
+    const listener = createListener("dw-ecs-listener", 80, loadBalancer);
+
     const createServiceConfig: ServiceConfig = {
         vpcId: vpc.id,
         securityGroups: [securityGroup],
@@ -40,11 +45,13 @@ export const createCluster = async () => {
         listener,
     };
 
+    if (!command) return;
+
     // TODO: Get input from function
-    let commandResults = await applyCommand(Command.Swap, {
+    let commandResults = await applyCommand(command, {
         clusterArn: cluster.arn,
-        deployment: Deployment.Green,
-        service: Service.User,
+        deployment: command.deployment,
+        service: command.service,
     });
 
     // Set targets
@@ -53,12 +60,16 @@ export const createCluster = async () => {
         commandResults,
     );
 
-    const services = commandResults.map((microservice) =>
-        createService(microservice),
+    // Create microservices
+    commandResults.map((microservice) =>
+        createService(microservice, createServiceConfig),
     );
 };
 
-export const createService = (microservice: Microservice): aws.ecs.Service => {
+export const createService = (
+    microservice: Microservice,
+    config: ServiceConfig,
+): aws.ecs.Service => {
     const serviceName = generateServiceName(microservice);
 
     // target group for port 80
@@ -66,7 +77,7 @@ export const createService = (microservice: Microservice): aws.ecs.Service => {
         port: 80,
         protocol: "HTTP",
         targetType: "ip",
-        vpcId: vpc.id,
+        vpcId: config.vpcId,
     });
 
     const taskDefinition = new aws.ecs.TaskDefinition(serviceName, {
@@ -75,7 +86,7 @@ export const createService = (microservice: Microservice): aws.ecs.Service => {
         memory: "512",
         networkMode: "awsvpc",
         requiresCompatibilities: ["FARGATE"],
-        executionRoleArn: executionRole.arn,
+        executionRoleArn: config.executionRole.arn,
         containerDefinitions: JSON.stringify([
             {
                 name: serviceName,
@@ -93,14 +104,14 @@ export const createService = (microservice: Microservice): aws.ecs.Service => {
 
     const svc = new aws.ecs.Service(serviceName, {
         name: serviceName,
-        cluster: cluster.arn,
+        cluster: config.cluster.arn,
         desiredCount: 1,
         launchType: "FARGATE",
         taskDefinition: taskDefinition.arn,
         networkConfiguration: {
             assignPublicIp: true,
-            subnets: getSubnets(vpc.id).ids,
-            securityGroups: [securityGroup].map((s) => s.id),
+            subnets: getSubnets(config.vpcId).ids,
+            securityGroups: config.securityGroups.map((s) => s.id),
         },
         loadBalancers: [
             {
@@ -111,7 +122,7 @@ export const createService = (microservice: Microservice): aws.ecs.Service => {
         ],
     });
 
-    generateListenerRule(microservice, serviceTg);
+    generateListenerRule(microservice, serviceTg, config);
 
     return svc;
 };
@@ -135,12 +146,13 @@ export function setTarget(
 function generateListenerRule(
     microservice: Microservice,
     serviceTg: aws.lb.TargetGroup,
+    config: ServiceConfig,
 ) {
     const path = microservice.isTargeted ? `/${microservice.service}s` : "NA";
     const name = generateServiceName(microservice);
 
     return new aws.lb.ListenerRule(name, {
-        listenerArn: listener.arn,
+        listenerArn: config.listener.arn,
         actions: [
             {
                 type: "forward",

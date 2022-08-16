@@ -3,10 +3,16 @@ import { Service } from "./Service";
 import * as aws from "@pulumi/aws";
 import { Output } from "@pulumi/pulumi";
 
-export enum Command {
+export enum Action {
     Create = "create",
     Destroy = "destroy",
-    Swap = "swap",
+    Point = "point",
+}
+
+export interface Command {
+    action: Action;
+    service: Service;
+    deployment: Deployment;
 }
 
 interface applyCommandArgs {
@@ -106,18 +112,18 @@ export async function applyCommand(command: Command, args: applyCommandArgs) {
             })
             .map(serviceToMicroservice);
 
-    switch (command) {
-        case Command.Create:
+    switch (command.action) {
+        case Action.Create:
             jsonServices.push({
                 service: args.service,
                 deployment: args.deployment,
                 isTargeted: false,
             });
             break;
-        case Command.Destroy:
+        case Action.Destroy:
             jsonServices = filterOutService(services);
             break;
-        case Command.Swap:
+        case Action.Point:
             break;
     }
 
