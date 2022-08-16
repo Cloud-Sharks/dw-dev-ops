@@ -137,14 +137,10 @@ export function setTarget(
         return services.filter((svc) => svc.service === service).length === 1;
     };
 
-    // Automatically target resources that don't have a pair
-    const singles = services.map((svc) => {
-        if (isSingle(svc.service)) svc.isTargeted = true;
-        return svc;
-    });
-
-    const targets = singles.map((svc) => {
-        if (svc.service === service && svc.deployment === target) {
+    const targets = services.map((svc) => {
+        if (isSingle(svc.service)) {
+            svc.isTargeted = true;
+        } else if (svc.service === service && svc.deployment === target) {
             svc.isTargeted = true;
         } else if (svc.service === service) {
             svc.isTargeted = false;
