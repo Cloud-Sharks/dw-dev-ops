@@ -37,3 +37,12 @@ const run = async () => {
 };
 
 run().catch((err) => console.log(err));
+
+// point bank blue
+// point bank green
+
+// create bank green
+// create bank blue
+
+// remove bank green
+// remove bank blue

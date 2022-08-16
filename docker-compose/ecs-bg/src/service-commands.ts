@@ -15,9 +15,10 @@ interface applyCommandArgs {
     deployment: Deployment;
 }
 
-interface Microservice {
+export interface Microservice {
     service: Service;
     deployment: Deployment;
+    isTargeted: boolean;
 }
 
 interface GetEscServiceResult {
@@ -82,6 +83,7 @@ function serviceToMicroservice(
     return {
         service: svc as Service,
         deployment: deployment as Deployment,
+        isTargeted: false,
     };
 }
 
@@ -103,6 +105,7 @@ export async function applyCommand(command: Command, args: applyCommandArgs) {
             jsonServices.push({
                 service: args.service,
                 deployment: args.deployment,
+                isTargeted: false,
             });
             break;
         case Command.Destroy:
@@ -112,27 +115,12 @@ export async function applyCommand(command: Command, args: applyCommandArgs) {
             break;
     }
 
-    return jsonServices;
-}
+    // jsonServices = jsonServices.reduce(
+    //     (acc, ms) => setTarget(acc, ms.service, Deployment.Blue),
+    //     jsonServices,
+    // );
 
-export function swapListenerRuleTg(service: Service) {
-    // const x = {
-    //     listenerArn: config.listener.arn,
-    //     actions: [
-    //         {
-    //             type: "forward",
-    //             targetGroupArn: serviceTg.arn,
-    //         },
-    //     ],
-    //     conditions: [
-    //         {
-    //             pathPattern: {
-    //                 values: [`/${serviceName}`],
-    //             },
-    //         },
-    //     ],
-    // };
-    // aws.lb.ListenerRule.get();
+    return jsonServices;
 }
 
 export function generateServiceName(service: Service, deployment: Deployment) {
