@@ -121,11 +121,6 @@ export async function applyCommand(command: Command, args: applyCommandArgs) {
             break;
     }
 
-    // jsonServices = jsonServices.reduce(
-    //     (acc, ms) => setTarget(acc, ms.service, Deployment.Blue),
-    //     jsonServices,
-    // );
-
     return jsonServices;
 }
 

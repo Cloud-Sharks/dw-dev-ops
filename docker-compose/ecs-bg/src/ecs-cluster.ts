@@ -40,17 +40,11 @@ export const createCluster = async () => {
         listener,
     };
 
-    createService({
-        deployment: Deployment.Green,
-        service: Service.Underwriter,
-        isTargeted: false,
-    });
-
     // TODO: Get input from function
-    let commandResults = await applyCommand(Command.Create, {
+    let commandResults = await applyCommand(Command.Swap, {
         clusterArn: cluster.arn,
-        deployment: Deployment.Blue,
-        service: Service.Underwriter,
+        deployment: Deployment.Green,
+        service: Service.User,
     });
 
     // Set targets
@@ -65,10 +59,7 @@ export const createCluster = async () => {
 };
 
 export const createService = (microservice: Microservice): aws.ecs.Service => {
-    const serviceName = generateServiceName(
-        microservice.service,
-        microservice.deployment,
-    );
+    const serviceName = generateServiceName(microservice);
 
     // target group for port 80
     const serviceTg = new aws.lb.TargetGroup(serviceName, {
@@ -145,9 +136,10 @@ function generateListenerRule(
     microservice: Microservice,
     serviceTg: aws.lb.TargetGroup,
 ) {
-    const path = microservice.isTargeted ? `/${microservice.service}s` : "";
+    const path = microservice.isTargeted ? `/${microservice.service}s` : "NA";
+    const name = generateServiceName(microservice);
 
-    return new aws.lb.ListenerRule(microservice.service, {
+    return new aws.lb.ListenerRule(name, {
         listenerArn: listener.arn,
         actions: [
             {
@@ -158,7 +150,7 @@ function generateListenerRule(
         conditions: [
             {
                 pathPattern: {
-                    values: [""],
+                    values: [path],
                 },
             },
         ],
