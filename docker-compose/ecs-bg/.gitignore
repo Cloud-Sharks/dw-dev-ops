@@ -1,4 +1,4 @@
-/bin/
-/node_modules/
-.yarn
+.yarn/*
+!.yarn/releases
+node_modules/
 **/.env
