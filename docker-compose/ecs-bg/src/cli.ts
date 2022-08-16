@@ -6,8 +6,8 @@ import {
 } from "@pulumi/pulumi/automation";
 import { updateCluster } from "./ecs-cluster";
 import { Action, Command, Deployment, Service } from "./types";
+import * as process from "process";
 
-const process = require("process");
 const [, , ...args] = process.argv;
 
 let destroy = false;
@@ -21,7 +21,7 @@ const parseCommand = (): Command => {
     const validService = ["bank", "transaction", "user", "underwriter"];
     const validDeployment = ["green", "blue"];
 
-    const action: string = args[0];
+    const action = args[0];
     const service = args[1];
     const deployment = args[2];
 
