@@ -1,22 +1,14 @@
 import * as aws from "@pulumi/aws";
 import { GetSubnetsResult } from "@pulumi/aws/ec2";
 import { Output } from "@pulumi/pulumi";
+import { applyCommand, generateServiceName } from "./service-commands";
 import {
-    applyCommand,
     Command,
-    generateServiceName,
+    Deployment,
     Microservice,
-} from "./service-commands";
-import { Deployment } from "./Deployment";
-import { Service } from "./Service";
-
-interface ServiceConfig {
-    vpcId: Output<string>;
-    cluster: aws.ecs.Cluster;
-    listener: aws.lb.Listener;
-    securityGroups: aws.ec2.SecurityGroup[];
-    executionRole: aws.iam.Role;
-}
+    Service,
+    ServiceConfig,
+} from "./types";
 
 export const updateCluster = async (command?: Command) => {
     // define the default vpc info to deploy
@@ -58,6 +50,7 @@ export const updateCluster = async (command?: Command) => {
         if (ms.service === command.service) {
             return acc;
         }
+
         return setTarget(acc, ms.service, Deployment.Blue);
     }, commandResults);
 
@@ -97,6 +90,12 @@ export const createService = (
                         containerPort: 80,
                         hostPort: 80,
                         protocol: "tcp",
+                    },
+                ],
+                environment: [
+                    {
+                        name: "variable",
+                        values: "sdfdsf",
                     },
                 ],
             },

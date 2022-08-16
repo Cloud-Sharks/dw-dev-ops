@@ -5,9 +5,7 @@ import {
     UpResult,
 } from "@pulumi/pulumi/automation";
 import { updateCluster } from "./ecs-cluster";
-import { Command, Action } from "./service-commands";
-import { Deployment } from "./Deployment";
-import { Service } from "./Service";
+import { Action, Command, Deployment, Service } from "./types";
 
 const process = require("process");
 const [, , ...args] = process.argv;

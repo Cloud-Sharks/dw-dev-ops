@@ -1,37 +1,15 @@
-import { Deployment } from "./Deployment";
-import { Service } from "./Service";
 import * as aws from "@pulumi/aws";
 import { Output } from "@pulumi/pulumi";
 import { setTarget } from "./ecs-cluster";
-
-export enum Action {
-    Create = "create",
-    Remove = "remove",
-    Point = "point",
-}
-
-export interface Command {
-    action: Action;
-    service: Service;
-    deployment: Deployment;
-}
-
-interface applyCommandArgs {
-    clusterArn: Output<string>;
-    service: Service;
-    deployment: Deployment;
-}
-
-export interface Microservice {
-    service: Service;
-    deployment: Deployment;
-    isTargeted: boolean;
-}
-
-interface GetEscServiceResult {
-    err: any | null;
-    result: aws.ecs.GetServiceResult | null;
-}
+import {
+    Action,
+    applyCommandArgs,
+    Command,
+    Deployment,
+    GetEscServiceResult,
+    Microservice,
+    Service,
+} from "./types";
 
 async function getExistingServices(
     clusterArn: Output<string>,
