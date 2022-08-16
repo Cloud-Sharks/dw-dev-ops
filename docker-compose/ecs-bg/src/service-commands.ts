@@ -2,6 +2,7 @@ import { Deployment } from "./Deployment";
 import { Service } from "./Service";
 import * as aws from "@pulumi/aws";
 import { Output } from "@pulumi/pulumi";
+import { setTarget } from "./ecs-cluster";
 
 export enum Action {
     Create = "create",
@@ -124,6 +125,11 @@ export async function applyCommand(command: Command, args: applyCommandArgs) {
             jsonServices = filterOutService(services);
             break;
         case Action.Point:
+            jsonServices = setTarget(
+                jsonServices,
+                command.service,
+                command.deployment,
+            );
             break;
     }
 

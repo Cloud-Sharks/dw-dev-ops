@@ -54,10 +54,12 @@ export const updateCluster = async (command?: Command) => {
     });
 
     // Set targets
-    commandResults = commandResults.reduce(
-        (acc, ms) => setTarget(acc, ms.service, Deployment.Blue),
-        commandResults,
-    );
+    commandResults = commandResults.reduce((acc, ms) => {
+        if (ms.service === command.service) {
+            return acc;
+        }
+        return setTarget(acc, ms.service, Deployment.Blue);
+    }, commandResults);
 
     // Create microservices
     commandResults.map((microservice) =>
@@ -131,7 +133,17 @@ export function setTarget(
     service: Service,
     target: Deployment,
 ) {
-    const firstRun = services.map((svc) => {
+    const isSingle = (service: Service) => {
+        return services.filter((svc) => svc.service === service).length === 1;
+    };
+
+    // Automatically target resources that don't have a pair
+    const singles = services.map((svc) => {
+        if (isSingle(svc.service)) svc.isTargeted = true;
+        return svc;
+    });
+
+    const targets = singles.map((svc) => {
         if (svc.service === service && svc.deployment === target) {
             svc.isTargeted = true;
         } else if (svc.service === service) {
@@ -141,7 +153,7 @@ export function setTarget(
         return svc;
     });
 
-    return firstRun;
+    return targets;
 }
 
 function generateListenerRule(
