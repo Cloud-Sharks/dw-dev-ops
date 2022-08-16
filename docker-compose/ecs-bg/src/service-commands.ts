@@ -5,7 +5,7 @@ import { Output } from "@pulumi/pulumi";
 
 export enum Action {
     Create = "create",
-    Destroy = "destroy",
+    Remove = "remove",
     Point = "point",
 }
 
@@ -108,7 +108,7 @@ export async function applyCommand(command: Command, args: applyCommandArgs) {
                     isTargeted: false,
                 };
 
-                return svc.serviceName === generateServiceName(microservice);
+                return svc.serviceName !== generateServiceName(microservice);
             })
             .map(serviceToMicroservice);
 
@@ -120,7 +120,7 @@ export async function applyCommand(command: Command, args: applyCommandArgs) {
                 isTargeted: false,
             });
             break;
-        case Action.Destroy:
+        case Action.Remove:
             jsonServices = filterOutService(services);
             break;
         case Action.Point:
