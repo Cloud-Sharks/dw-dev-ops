@@ -47,7 +47,6 @@ export const updateCluster = async (command?: Command) => {
 
     if (!command) return;
 
-    // TODO: Get input from function
     let commandResults = await applyCommand(command, {
         clusterArn: cluster.arn,
         deployment: command.deployment,
@@ -132,7 +131,7 @@ export function setTarget(
     service: Service,
     target: Deployment,
 ) {
-    return services.map((svc) => {
+    const firstRun = services.map((svc) => {
         if (svc.service === service && svc.deployment === target) {
             svc.isTargeted = true;
         } else if (svc.service === service) {
@@ -141,6 +140,8 @@ export function setTarget(
 
         return svc;
     });
+
+    return firstRun;
 }
 
 function generateListenerRule(
