@@ -40,6 +40,12 @@ export const createCluster = async () => {
         listener,
     };
 
+    createService({
+        deployment: Deployment.Green,
+        service: Service.Underwriter,
+        isTargeted: false,
+    });
+
     // TODO: Get input from function
     let commandResults = await applyCommand(Command.Create, {
         clusterArn: cluster.arn,
@@ -139,26 +145,24 @@ function generateListenerRule(
     microservice: Microservice,
     serviceTg: aws.lb.TargetGroup,
 ) {
-    if (microservice.isTargeted) {
-        return new aws.lb.ListenerRule(microservice.service, {
-            listenerArn: listener.arn,
-            actions: [
-                {
-                    type: "forward",
-                    targetGroupArn: serviceTg.arn,
-                },
-            ],
-            conditions: [
-                {
-                    pathPattern: {
-                        values: [`/${microservice.service}s`],
-                    },
-                },
-            ],
-        });
-    }
+    const path = microservice.isTargeted ? `/${microservice.service}s` : "";
 
-    return null;
+    return new aws.lb.ListenerRule(microservice.service, {
+        listenerArn: listener.arn,
+        actions: [
+            {
+                type: "forward",
+                targetGroupArn: serviceTg.arn,
+            },
+        ],
+        conditions: [
+            {
+                pathPattern: {
+                    values: [""],
+                },
+            },
+        ],
+    });
 }
 
 function generateSecurityGroup(vpcId: Output<string>): aws.ec2.SecurityGroup {

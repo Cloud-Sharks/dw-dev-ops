@@ -44,12 +44,14 @@ async function getExistingServices(
         deployment: Deployment,
     ): Promise<GetEscServiceResult> =>
         new Promise((res, rej) => {
+            const microservice: Microservice = {
+                deployment,
+                service,
+                isTargeted: false,
+            };
+
             return clusterArn.apply(async (clusterArn) => {
-                const svc = await getEcsService(
-                    clusterArn,
-                    service,
-                    deployment,
-                );
+                const svc = await getEcsService(clusterArn, microservice);
 
                 if (svc.err) {
                     rej(svc.err);
@@ -93,11 +95,15 @@ export async function applyCommand(command: Command, args: applyCommandArgs) {
 
     const filterOutService = (services: aws.ecs.GetServiceResult[]) =>
         services
-            .filter(
-                (svc) =>
-                    svc.serviceName ===
-                    generateServiceName(args.service, args.deployment),
-            )
+            .filter((svc) => {
+                const microservice: Microservice = {
+                    deployment: args.deployment,
+                    service: args.service,
+                    isTargeted: false,
+                };
+
+                return svc.serviceName === generateServiceName(microservice);
+            })
             .map(serviceToMicroservice);
 
     switch (command) {
@@ -123,19 +129,18 @@ export async function applyCommand(command: Command, args: applyCommandArgs) {
     return jsonServices;
 }
 
-export function generateServiceName(service: Service, deployment: Deployment) {
-    return `${service}-${deployment}`;
+export function generateServiceName(microservice: Microservice) {
+    return `${microservice.service}-${microservice.deployment}`;
 }
 
 export async function getEcsService(
     clusterArn: string,
-    service: Service,
-    deployment: Deployment,
+    microservice: Microservice,
 ): Promise<GetEscServiceResult> {
     return await aws.ecs
         .getService({
             clusterArn,
-            serviceName: generateServiceName(service, deployment),
+            serviceName: generateServiceName(microservice),
         })
         .then(
             (res) => ({ err: null, result: res }),
