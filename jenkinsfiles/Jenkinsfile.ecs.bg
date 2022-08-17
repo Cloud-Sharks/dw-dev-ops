@@ -5,7 +5,7 @@ pipeline {
   agent any
 
   tools {
-    nodejs 'nodejs - 16.17.0'
+    nodejs 'nodejs - 18.7.0'
   }
 
   parameters {
