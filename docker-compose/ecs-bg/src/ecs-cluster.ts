@@ -263,7 +263,7 @@ function generateExecutionRole(): aws.iam.Role {
 function getMicroservicePaths(microservice: Microservice) {
     switch (microservice.service) {
         case Service.Bank:
-            return ["/banks", "/brances"];
+            return ["/banks", "/branches"];
         case Service.User:
             return ["/login", "/users"];
         case Service.Underwriter:
