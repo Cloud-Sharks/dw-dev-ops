@@ -165,8 +165,10 @@ function generateListenerRule(
     serviceTg: aws.lb.TargetGroup,
     config: ServiceConfig,
 ) {
-    const path = microservice.isTargeted ? `/${microservice.service}s` : "NA";
     const name = generateServiceName(microservice);
+    const paths = microservice.isTargeted
+        ? getMicroservicePaths(microservice)
+        : ["NA"];
 
     return new aws.lb.ListenerRule(name, {
         listenerArn: config.listener.arn,
@@ -179,7 +181,7 @@ function generateListenerRule(
         conditions: [
             {
                 pathPattern: {
-                    values: [path],
+                    values: paths,
                 },
             },
         ],
@@ -256,6 +258,21 @@ function generateExecutionRole(): aws.iam.Role {
     });
 
     return role;
+}
+
+function getMicroservicePaths(microservice: Microservice) {
+    switch (microservice.service) {
+        case Service.Bank:
+            return ["/banks", "/brances"];
+        case Service.User:
+            return ["/login", "/users"];
+        case Service.Underwriter:
+            return ["/applicants", "/applications"];
+        case Service.Transaction:
+            return ["/transactions"];
+        default:
+            return ["NA"];
+    }
 }
 
 function getSubnets(vpcId: Output<string>): Output<aws.ec2.GetSubnetsResult> {
