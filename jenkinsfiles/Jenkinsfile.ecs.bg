@@ -52,7 +52,9 @@ pipeline {
           secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
         {
           dir("${DEVOPS_DIR}/docker-compose/ecs-bg") {
-            sh "npm run start ${params.ACTION} ${serviceName} ${params.COLOR}"
+            withEnv(["PATH+PULUMI=$HOME/.pulumi/bin"]) {
+              sh "npm run start ${params.ACTION} ${serviceName} ${params.COLOR}"
+            }
           }
         }
       }
