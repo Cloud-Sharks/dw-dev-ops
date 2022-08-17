@@ -52,6 +52,7 @@ pipeline {
         {
           dir("${DEVOPS_DIR}/docker-compose/ecs-bg") {
             withEnv(["PATH+PULUMI=$HOME/.pulumi/bin"]) {
+              sh 'export PULUMI_ACCESS_TOKEN=sdfsdf'
               sh 'npm i'
               sh "npm run start ${params.ACTION} ${serviceName} ${params.COLOR}"
             }
