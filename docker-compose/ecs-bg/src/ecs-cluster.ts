@@ -112,7 +112,7 @@ export const createService = (
     const svc = new aws.ecs.Service(serviceName, {
         name: serviceName,
         cluster: config.cluster.arn,
-        desiredCount: 1,
+        desiredCount: 2,
         launchType: "FARGATE",
         taskDefinition: taskDefinition.arn,
         networkConfiguration: {
@@ -261,13 +261,13 @@ function generateExecutionRole(): aws.iam.Role {
 function getMicroservicePaths(microservice: Microservice) {
     switch (microservice.service) {
         case Service.Bank:
-            return ["/banks", "/branches"];
+            return ["/banks*", "/branches*"];
         case Service.User:
-            return ["/login", "/users"];
+            return ["/login*", "/users*"];
         case Service.Underwriter:
-            return ["/applicants", "/applications"];
+            return ["/applicants*", "/applications*"];
         case Service.Transaction:
-            return ["/transactions"];
+            return ["/transactions*"];
         default:
             return ["NA"];
     }
