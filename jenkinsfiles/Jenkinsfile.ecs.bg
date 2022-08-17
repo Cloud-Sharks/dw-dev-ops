@@ -28,7 +28,6 @@ pipeline {
           }
 
           PULUMI_ACCESS_TOKEN = readJSON(text: JENKINS_JSON)['pulumiToken']
-          echo "${PULUMI_ACCESS_TOKEN}"
 
           checkoutDevops(DEVOPS_DIR)
           serviceName = getServiceName(GIT_URL)
@@ -54,7 +53,6 @@ pipeline {
           dir("${DEVOPS_DIR}/docker-compose/ecs-bg") {
             withEnv(["PATH+PULUMI=$HOME/.pulumi/bin"]) {
               sh 'npm i'
-              sh 'pulumi stack select ecs-bg'
               sh "npm run start ${params.ACTION} ${serviceName} ${params.COLOR}"
             }
           }
