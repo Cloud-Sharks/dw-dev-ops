@@ -36,6 +36,13 @@ pipeline {
       }
     }
 
+    stage('Install dependencies') {
+      steps {
+        sh 'curl -fsSL https://get.pulumi.com | sh'
+        sh "$HOME/.pulumi/bin/pulumi version"
+      }
+    }
+
     stage('Execute') {
       steps {
         withCredentials([[
