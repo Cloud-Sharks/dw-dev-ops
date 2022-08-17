@@ -28,6 +28,7 @@ pipeline {
           }
 
           PULUMI_ACCESS_TOKEN = readJSON(text: JENKINS_JSON)['pulumiToken']
+          echo "${PULUMI_ACCESS_TOKEN}"
 
           checkoutDevops(DEVOPS_DIR)
           serviceName = getServiceName(GIT_URL)
