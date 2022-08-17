@@ -4,6 +4,10 @@ def serviceName = ''
 pipeline {
   agent any
 
+  tools {
+    nodejs 'nodejs'
+  }
+
   parameters {
     choice choices: [ 'create', 'point', 'remove'], name: 'ACTION'
     choice choices: ['green', 'blue'], name: 'COLOR'
