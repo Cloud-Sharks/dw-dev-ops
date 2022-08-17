@@ -38,8 +38,15 @@ pipeline {
 
     stage('Execute') {
       steps {
-        dir("${DEVOPS_DIR}/docker-compose/ecs-bg") {
-          sh "npm run start ${params.ACTION} ${serviceName} ${params.COLOR}"
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'DW-Jenkins-AWS-Credentials',
+          accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']])
+        {
+          dir("${DEVOPS_DIR}/docker-compose/ecs-bg") {
+            sh "npm run start ${params.ACTION} ${serviceName} ${params.COLOR}"
+          }
         }
       }
     }
