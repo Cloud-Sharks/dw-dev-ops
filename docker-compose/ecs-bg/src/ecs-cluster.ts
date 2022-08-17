@@ -74,6 +74,13 @@ export const createService = (
         protocol: "HTTP",
         targetType: "ip",
         vpcId: config.vpcId,
+        healthCheck: {
+            enabled: true,
+            port: "80",
+            matcher: "200,404",
+            healthyThreshold: 2,
+            unhealthyThreshold: 10,
+        },
     });
 
     const envPath = path.join(__dirname, ".env");
@@ -81,8 +88,8 @@ export const createService = (
 
     const taskDefinition = new aws.ecs.TaskDefinition(serviceName, {
         family: serviceName,
-        cpu: "1024",
-        memory: "2048",
+        cpu: "2048",
+        memory: "4096",
         networkMode: "awsvpc",
         requiresCompatibilities: ["FARGATE"],
         executionRoleArn: config.executionRole.arn,
@@ -98,15 +105,6 @@ export const createService = (
                     },
                 ],
                 environment: env,
-                logConfiguration: {
-                    logDriver: "awslogs",
-                    options: {
-                        "awslogs-create-group": "true",
-                        "awslogs-group": serviceName,
-                        "awslogs-region": "us-east-1",
-                        "awslogs-stream-prefix": "dw-ecs",
-                    },
-                },
             },
         ]),
     });
