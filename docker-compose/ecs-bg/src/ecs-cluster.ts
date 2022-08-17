@@ -31,14 +31,6 @@ export const updateCluster = async (command?: Command) => {
     );
     const listener = createListener("dw-ecs-listener", 80, loadBalancer);
 
-    const createServiceConfig: ServiceConfig = {
-        vpcId: vpc.id,
-        securityGroups: [securityGroup],
-        cluster,
-        executionRole,
-        listener,
-    };
-
     if (!command) return;
 
     let commandResults = await applyCommand(command, {
@@ -55,6 +47,14 @@ export const updateCluster = async (command?: Command) => {
 
         return setTarget(acc, ms.service, Deployment.Blue);
     }, commandResults);
+
+    const createServiceConfig: ServiceConfig = {
+        vpcId: vpc.id,
+        securityGroups: [securityGroup],
+        cluster,
+        executionRole,
+        listener,
+    };
 
     for (const ms of commandResults) {
         createService(ms, createServiceConfig);
