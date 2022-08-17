@@ -56,10 +56,9 @@ export const updateCluster = async (command?: Command) => {
         return setTarget(acc, ms.service, Deployment.Blue);
     }, commandResults);
 
-    // Create microservices
-    commandResults.map((microservice) =>
-        createService(microservice, createServiceConfig),
-    );
+    for (const ms of commandResults) {
+        createService(ms, createServiceConfig);
+    }
 };
 
 export const createService = (
