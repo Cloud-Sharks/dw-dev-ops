@@ -1,0 +1,88 @@
+// Leave blank
+def serviceName = ''
+
+pipeline {
+  agent any
+
+  parameters {
+    choice choices: [ 'create', 'point', 'remove'], name: 'ACTION'
+    choice choices: ['green', 'blue'], name: 'COLOR'
+  }
+
+  environment {
+    JENKINS_JSON = ''
+    DEVOPS_DIR = 'devops'
+  }
+
+  stages {
+    stage('Setup') {
+      steps {
+        script {
+          configFileProvider([configFile(fileId: 'dw-jenkins-config', variable: 'JENKINS_CONFIG')]) {
+            JENKINS_JSON = bash("cat ${JENKINS_CONFIG}")
+          }
+
+          checkoutDevops(DEVOPS_DIR)
+          serviceName = getServiceName(GIT_URL)
+
+          dir("${DEVOPS_DIR}/docker-compose/ecs-bg") {
+            sh 'yarn'
+          }
+        }
+      }
+    }
+
+    stage('Execute') {
+      steps {
+        dir("${DEVOPS_DIR}/docker-compose/ecs-bg") {
+          sh "yarn start ${params.ACTION} ${serviceName} ${params.COLOR}"
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh "rm -rf ${DEVOPS_DIR}"
+    }
+  }
+}
+
+// Extracts the service name from the git url
+// It should return bank, underwriter, user or transaction
+def getServiceName(gitRepositoryUrl) {
+  def serviceName = (gitRepositoryUrl =~ /^.*aline-(.+?)-microservice.*/)[0][1]
+  checkServiceName(serviceName)
+
+  return serviceName
+}
+
+def checkServiceName(serviceName) {
+  throwIfNull(serviceName, 'serviceName')
+  def acceptable = readJSON(text: JENKINS_JSON)['serviceNames']
+
+  if (acceptable.contains(serviceName) == false) {
+    error "Invalid service name: '${serviceName}'"
+  }
+}
+
+def checkoutDevops(targetDir) {
+  def jenkinsConfig = readJSON(text: JENKINS_JSON)
+  def repoUrl = jenkinsConfig['devopsGitUrl']
+  def branch = jenkinsConfig['devopsBranch']
+
+  sh "rm -rf ${targetDir}; git clone -b ${branch} ${repoUrl} ${targetDir}"
+}
+
+// Pipes act weird in jenkins so use eval to make sure it completes properly
+def bash(script) {
+  throwIfNull(script, 'script')
+
+  return sh(script: $/eval ${script}/$, returnStdout: true).trim()
+}
+
+def throwIfNull(value, name) {
+  if (value == null) {
+    error "${name} is null"
+  }
+}
