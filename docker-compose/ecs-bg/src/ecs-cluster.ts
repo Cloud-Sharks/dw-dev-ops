@@ -81,7 +81,7 @@ export const createService = (
 
     const taskDefinition = new aws.ecs.TaskDefinition(serviceName, {
         family: serviceName,
-        cpu: "2048",
+        cpu: "1024",
         memory: "2048",
         networkMode: "awsvpc",
         requiresCompatibilities: ["FARGATE"],
