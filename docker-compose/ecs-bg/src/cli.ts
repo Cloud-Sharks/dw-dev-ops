@@ -65,6 +65,7 @@ const run = async () => {
     }
 
     const summary = JSON.stringify(result?.summary.resourceChanges, null, 4);
+    console.info(summary);
 };
 
 run().catch((err) => console.error(err));
