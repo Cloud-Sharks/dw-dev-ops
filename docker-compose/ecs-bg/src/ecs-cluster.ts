@@ -74,6 +74,13 @@ export const createService = (
         protocol: "HTTP",
         targetType: "ip",
         vpcId: config.vpcId,
+        healthCheck: {
+            enabled: true,
+            port: "80",
+            matcher: "200,404",
+            healthyThreshold: 2,
+            unhealthyThreshold: 10,
+        },
     });
 
     const envPath = path.join(__dirname, ".env");
@@ -81,8 +88,8 @@ export const createService = (
 
     const taskDefinition = new aws.ecs.TaskDefinition(serviceName, {
         family: serviceName,
-        cpu: "1024",
-        memory: "2048",
+        cpu: "2048",
+        memory: "4096",
         networkMode: "awsvpc",
         requiresCompatibilities: ["FARGATE"],
         executionRoleArn: config.executionRole.arn,
@@ -156,8 +163,10 @@ function generateListenerRule(
     serviceTg: aws.lb.TargetGroup,
     config: ServiceConfig,
 ) {
-    const path = microservice.isTargeted ? `/${microservice.service}s` : "NA";
     const name = generateServiceName(microservice);
+    const paths = microservice.isTargeted
+        ? getMicroservicePaths(microservice)
+        : ["NA"];
 
     return new aws.lb.ListenerRule(name, {
         listenerArn: config.listener.arn,
@@ -170,7 +179,7 @@ function generateListenerRule(
         conditions: [
             {
                 pathPattern: {
-                    values: [path],
+                    values: paths,
                 },
             },
         ],
@@ -247,6 +256,21 @@ function generateExecutionRole(): aws.iam.Role {
     });
 
     return role;
+}
+
+function getMicroservicePaths(microservice: Microservice) {
+    switch (microservice.service) {
+        case Service.Bank:
+            return ["/banks", "/branches"];
+        case Service.User:
+            return ["/login", "/users"];
+        case Service.Underwriter:
+            return ["/applicants", "/applications"];
+        case Service.Transaction:
+            return ["/transactions"];
+        default:
+            return ["NA"];
+    }
 }
 
 function getSubnets(vpcId: Output<string>): Output<aws.ec2.GetSubnetsResult> {
