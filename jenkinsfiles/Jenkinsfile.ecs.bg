@@ -26,7 +26,7 @@ pipeline {
           serviceName = getServiceName(GIT_URL)
 
           dir("${DEVOPS_DIR}/docker-compose/ecs-bg") {
-            sh 'yarn'
+            sh 'npm i'
           }
         }
       }
@@ -35,7 +35,7 @@ pipeline {
     stage('Execute') {
       steps {
         dir("${DEVOPS_DIR}/docker-compose/ecs-bg") {
-          sh "yarn start ${params.ACTION} ${serviceName} ${params.COLOR}"
+          sh "npm run start ${params.ACTION} ${serviceName} ${params.COLOR}"
         }
       }
     }
