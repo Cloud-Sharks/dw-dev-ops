@@ -16,6 +16,7 @@ pipeline {
   environment {
     JENKINS_JSON = ''
     DEVOPS_DIR = 'devops'
+    PULUMI_ACCESS_TOKEN = ''
   }
 
   stages {
@@ -25,6 +26,8 @@ pipeline {
           configFileProvider([configFile(fileId: 'dw-jenkins-config', variable: 'JENKINS_CONFIG')]) {
             JENKINS_JSON = bash("cat ${JENKINS_CONFIG}")
           }
+
+          PULUMI_ACCESS_TOKEN = readJSON(text: JENKINS_JSON)['pulumiToken']
 
           checkoutDevops(DEVOPS_DIR)
           serviceName = getServiceName(GIT_URL)
